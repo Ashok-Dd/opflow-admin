@@ -22,13 +22,13 @@ export default async function AttentionPage() {
   if (a.error) return (<><Head title="Needs attention" /><LoadError error={a.error} /></>);
   const d = a.data;
   const total =
-    d.failedRefunds.length + d.stuckBulkOperations.length + d.doctorsWaitingOver48h.length + d.oldTickets.length +
+    d.failedRefunds.length + d.stuckBulkOperations.length + d.doctorsWaitingOver48h.length +
     d.payoutsWaiting.length + d.unprocessedWebhooks.length + d.idleOpds.length + d.rejectedDocuments.length + (d.holdsNotExpired ? 1 : 0);
 
   return (
     <>
       <Head kicker="One list" title="Needs attention" lead="Everything a person must look at. Oldest problems first matter most." />
-      {total === 0 ? <Empty title="Nothing needs attention.">Refunds, payouts, OPDs and support are all on track.</Empty> : null}
+      {total === 0 ? <Empty title="Nothing needs attention.">Refunds, payouts and OPDs are all on track.</Empty> : null}
 
       {d.failedRefunds.length ? (
         <>
@@ -38,7 +38,7 @@ export default async function AttentionPage() {
             <tbody>
               {d.failedRefunds.map((r) => (
                 <tr key={String(r.id)}>
-                  <td><a className="rowlink" href={`/bookings/${r.bookingId}`}>Open booking</a></td>
+                  <td className="mono">{String(r.bookingId).slice(0, 8)}</td>
                   <td className="num">{rupees(r.amountPaise)}</td>
                   <td className="mono">{r.attempts}</td>
                   <td className="muted">{r.failureReason ?? '—'}</td>
@@ -121,12 +121,7 @@ export default async function AttentionPage() {
         </>
       ) : null}
 
-      {d.oldTickets.length ? (
-        <>
-          <Sec title="Support tickets older than a day" note={`${d.oldTickets.length}`} />
-          <a className="btn ghost small" href="/support?status=open">Open the support queue</a>
-        </>
-      ) : null}
+
 
       {d.unprocessedWebhooks.length ? (
         <>

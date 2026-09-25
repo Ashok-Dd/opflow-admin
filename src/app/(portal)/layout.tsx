@@ -22,24 +22,13 @@ export default async function PortalLayout({ children }: LayoutProps<'/'>) {
       items: [
         ...(can(r, 'doctors') ? [{ href: '/doctors', label: 'Doctors' }] : []),
         { href: '/hospitals', label: 'Hospitals' },
-        ...(can(r, 'bookings') ? [{ href: '/bookings', label: 'Bookings' }] : []),
-        ...(can(r, 'patients') ? [{ href: '/patients', label: 'Patients' }] : []),
       ],
     },
     ...(can(r, 'money') ? [{ title: 'Money', items: [{ href: '/money', label: 'Refunds & payouts' }] }] : []),
     {
-      title: 'Content & help',
-      items: [
-        ...(can(r, 'content') ? [{ href: '/content/first-aid', label: 'First aid' }] : []),
-        { href: '/content/catalog', label: 'Catalog' },
-        ...(can(r, 'support') ? [{ href: '/support', label: 'Support', count: who.badges.tickets }] : []),
-      ],
-    },
-    {
       title: 'Settings',
       items: [
         { href: '/settings/rules', label: 'Rules & switches' },
-        { href: '/settings/audit', label: 'Audit log' },
       ],
     },
   ];

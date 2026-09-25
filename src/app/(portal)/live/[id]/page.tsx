@@ -38,7 +38,7 @@ export default async function LineOfSession({ params }: PageProps<'/live/[id]'>)
             {l.line.map((e) => (
               <tr key={e.bookingId}>
                 <td className="mono">{e.tokenLabel}</td>
-                <td><a className="rowlink" href={`/bookings/${e.bookingId}`}>{e.name}</a><span className="sub">{e.age ?? '—'}{e.emergency ? ' · emergency' : ''}</span></td>
+                <td>{e.name}<span className="sub">{e.age ?? '—'}{e.emergency ? ' · emergency' : ''}</span></td>
                 <td className="muted">{e.hour ?? 'now'}</td>
                 <td><Stamp s={e.state} /></td>
                 <td className="mono">{e.reachedAt ? time(e.reachedAt) : '—'}</td>

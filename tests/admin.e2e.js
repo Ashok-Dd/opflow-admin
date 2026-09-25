@@ -146,7 +146,7 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   check('No admins page any more', (await a.evaluate(() => document.body.innerText)).includes('Page not found'));
 
   // 5. Every page opens without errors
-  const pages = ['/', '/attention', '/live', '/emergency', '/doctors', doctorHref + '?tab=documents', doctorHref + '?tab=hospitals', doctorHref + '?tab=money', doctorHref + '?tab=login', doctorHref + '?tab=history', '/hospitals', '/hospitals/new', '/bookings', '/patients', '/money', '/money?tab=payouts', '/money?tab=payments', '/money?tab=reconciliation', '/content/first-aid', '/content/first-aid/snake', '/content/catalog', '/support', '/settings/rules', '/settings/audit'];
+  const pages = ['/', '/attention', '/live', '/emergency', '/doctors', doctorHref + '?tab=documents', doctorHref + '?tab=hospitals', doctorHref + '?tab=money', doctorHref + '?tab=login', doctorHref + '?tab=history', '/hospitals', '/hospitals/new', '/money', '/money?tab=payouts', '/money?tab=payments', '/money?tab=reconciliation', '/settings/rules'];
   for (const path of pages) {
     await go(a, path);
     const bad = await a.evaluate(() => {
@@ -159,9 +159,7 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   const hospital = await a.$eval('.register a.rowlink[href^="/hospitals/"]', (e) => e.getAttribute('href')).catch(() => null);
   if (hospital) { await go(a, hospital); check('Page opens: hospital detail', !(await a.$('.notice.bad'))); }
   await go(a, '/settings/rules'); await a.screenshot({ path: 'shots/09-rules.png', fullPage: true });
-  await go(a, '/content/first-aid/snake'); await a.screenshot({ path: 'shots/10-first-aid.png', fullPage: true });
   await go(a, '/doctors'); await a.screenshot({ path: 'shots/11-doctors.png' });
-  await go(a, '/settings/audit'); await a.screenshot({ path: 'shots/12-audit.png' });
 
   // 6. Phone width
   await a.setViewport({ width: 390, height: 844 });

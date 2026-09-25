@@ -210,27 +210,7 @@ export async function geocode(address: string): Promise<{ address: string; lat: 
   }
 }
 
-// ── Bookings and money ────────────────────────────────────────────────────────────────────────────────
-
-export async function bookingCommand(_: ActionResult, f: FormData): Promise<ActionResult> {
-  return runAction(f, async () => {
-    const id = str(f, 'id');
-    const cmd = str(f, 'cmd');
-    if (cmd === 'refund') {
-      await api('POST', `/v1/admin/bookings/${id}/refund`, { body: { amountPaise: rupeesToPaise(str(f, 'amount')), reason: str(f, 'reason') }, idempotent: true });
-      return done('Refund started. The patient is told.', `/bookings/${id}`);
-    }
-    if (cmd === 'move' || cmd === 'cancel') {
-      await api('POST', `/v1/admin/bookings/${id}/${cmd}`, { body: { reason: str(f, 'reason') } });
-      return done(cmd === 'move' ? 'Moved. The patient will pick a new time.' : 'Cancelled with full money back.', `/bookings/${id}`);
-    }
-    if (cmd === 'resend-receipt') {
-      await api('POST', `/v1/admin/bookings/${id}/resend-receipt`);
-      return done('Receipt message sent.');
-    }
-    throw new Error('Unknown command');
-  });
-}
+// ── Money ────────────────────────────────────────────────────────────────────────────────
 
 export async function refundCommand(_: ActionResult, f: FormData): Promise<ActionResult> {
   return runAction(f, async () => {
@@ -244,78 +224,12 @@ export async function refundCommand(_: ActionResult, f: FormData): Promise<Actio
   });
 }
 
-// ── Patients ──────────────────────────────────────────────────────────────────────────────────────────
-
-export async function patientCommand(_: ActionResult, f: FormData): Promise<ActionResult<{ phone?: string }>> {
-  return runAction(f, async () => {
-    const id = str(f, 'id');
-    const cmd = str(f, 'cmd');
-    if (cmd === 'reveal') {
-      const r = await api<{ phone: string }>('POST', `/v1/admin/patients/${id}/reveal`, { body: { field: 'phone', reason: str(f, 'reason') } });
-      return { message: `Phone: ${r.phone} (this was recorded in the audit log)`, data: { phone: r.phone } };
-    }
-    if (cmd === 'block' || cmd === 'unblock') {
-      await api('POST', `/v1/admin/patients/${id}/block`, { body: { blocked: cmd === 'block', reason: str(f, 'reason') } });
-      return done(cmd === 'block' ? 'Account blocked.' : 'Account unblocked.', `/patients/${id}`);
-    }
-    if (cmd === 'deletion') {
-      await api('POST', `/v1/admin/patients/${id}/deletion`, { body: { reason: str(f, 'reason') } });
-      return done('Account deleted (bookings kept without name or phone).', `/patients/${id}`);
-    }
-    throw new Error('Unknown command');
-  });
-}
-
-// ── Emergency, content, support ───────────────────────────────────────────────────────────────────────
+// ── Emergency ───────────────────────────────────────────────────────────────────────
 
 export async function emergencyOff(_: ActionResult, f: FormData): Promise<ActionResult> {
   return runAction(f, async () => {
     await api('POST', `/v1/admin/emergency/${str(f, 'doctorId')}/off`, { body: { reason: str(f, 'reason') } });
     return done('Turned off. The doctor is told.', '/emergency');
-  });
-}
-
-const lines = (v: string) => v.split('\n').map((s) => s.trim()).filter(Boolean);
-
-export async function saveFirstAid(_: ActionResult, f: FormData): Promise<ActionResult> {
-  return runAction(f, async () => {
-    const kind = str(f, 'kind');
-    const sources = lines(str(f, 'sources')).map((l) => {
-      const [title = '', year = '', url = ''] = l.split('|').map((s) => s.trim());
-      return { title, year: year ? Number(year) : null, url: url || null };
-    });
-    await api('PUT', `/v1/admin/first-aid/${kind}`, {
-      body: {
-        intro: optStr(f, 'intro') ?? null,
-        signs: lines(str(f, 'signs')),
-        callNowIf: lines(str(f, 'callNowIf')),
-        dos: lines(str(f, 'dos')),
-        donts: lines(str(f, 'donts')),
-        sources,
-        sourceToConfirm: f.get('sourceToConfirm') === 'on',
-      },
-    });
-    return done('Saved. The page is back "in review" until a doctor reviews and it is published again.', `/content/first-aid/${kind}`);
-  });
-}
-
-export async function publishFirstAid(_: ActionResult, f: FormData): Promise<ActionResult> {
-  return runAction(f, async () => {
-    const kind = str(f, 'kind');
-    await api('POST', `/v1/admin/first-aid/${kind}/publish`, { body: { reviewedByDoctor: str(f, 'reviewedByDoctor') } });
-    return done('Published. The app shows it at its next refresh.', `/content/first-aid/${kind}`);
-  });
-}
-
-export async function ticketCommand(_: ActionResult, f: FormData): Promise<ActionResult> {
-  return runAction(f, async () => {
-    const id = str(f, 'id');
-    if (str(f, 'cmd') === 'close') {
-      await api('POST', `/v1/admin/tickets/${id}/close`);
-      return done('Closed.', '/support');
-    }
-    await api('POST', `/v1/admin/tickets/${id}/reply`, { body: { reply: str(f, 'reply') } });
-    return done('Reply sent to the app.', '/support');
   });
 }
 

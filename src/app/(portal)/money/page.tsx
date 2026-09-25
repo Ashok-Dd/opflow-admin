@@ -55,7 +55,7 @@ async function Refunds({ status }: { status?: string }) {
           <tbody>
             {r.data.map((x) => (
               <tr key={x.id}>
-                <td><a className="rowlink mono" href={`/bookings/${x.bookingId}`}>{x.code}</a><span className="sub">{x.patientName}</span></td>
+                <td><span className="mono">{x.code}</span><span className="sub">{x.patientName}</span></td>
                 <td>{words(x.reason)}{x.failureReason ? <span className="sub">{x.failureReason}</span> : null}</td>
                 <td className="num">{rupees(x.amountPaise)}</td>
                 <td><Stamp s={x.status} />{x.attempts ? <span className="sub">{x.attempts} tries</span> : null}</td>
@@ -115,7 +115,7 @@ async function Payments({ status }: { status?: string }) {
           <tbody>
             {r.data.map((p) => (
               <tr key={p.id}>
-                <td><a className="rowlink mono" href={`/bookings/${p.bookingId}`}>{p.code}</a></td>
+                <td className="mono">{p.code}</td>
                 <td className="mono">{p.razorpayPaymentId ?? p.razorpayOrderId}</td>
                 <td className="num">{rupees(p.amountPaise)}</td>
                 <td>{p.method ?? '—'}</td>
