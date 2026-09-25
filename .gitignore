@@ -1,0 +1,9 @@
+.next/
+node_modules/
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+setupA.txt
+setupB.txt
+shots/
+degree.pdf
