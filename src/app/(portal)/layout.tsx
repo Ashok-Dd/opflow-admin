@@ -1,4 +1,5 @@
-import { Nav, type NavGroup } from '@/components/nav';
+import type { NavGroup } from '@/components/nav';
+import { Shell } from '@/components/shell';
 import { can } from '@/lib/format';
 import { me } from '@/lib/me';
 
@@ -34,22 +35,8 @@ export default async function PortalLayout({ children }: LayoutProps<'/'>) {
   ];
 
   return (
-    <div className="frame">
-      <aside className="index">
-        <div className="mark">
-          <b>OPflow</b>
-          <span>ADMIN</span>
-        </div>
-        <Nav groups={groups} />
-        <div className="who">
-          <b>{who.name}</b>
-          <span className="mono">{who.role}</span> · {who.email}
-          <form action={signOut}>
-            <button type="submit">Sign out</button>
-          </form>
-        </div>
-      </aside>
-      <main className="sheet">{children}</main>
-    </div>
+    <Shell groups={groups} who={{ name: who.name, email: who.email, role: who.role }} signOut={signOut}>
+      {children}
+    </Shell>
   );
 }

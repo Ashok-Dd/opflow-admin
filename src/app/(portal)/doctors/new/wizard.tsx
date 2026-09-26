@@ -5,18 +5,13 @@ import { useActionState, useState } from 'react';
 
 import { Field } from '@/components/action-form';
 
-import { createDoctor, documentUploadUrl } from '../../actions';
+import { createDoctor } from '../../actions';
 
-const STEPS = ['Identity', 'Registration', 'Documents', 'Hospitals & fee', 'Payout', 'Photo & about'];
-const DOCS = [
-  { kind: 'degree', label: 'Degree certificate' },
-  { kind: 'registration', label: 'Registration certificate' },
-  { kind: 'id_proof', label: 'Government ID (Aadhaar masked / PAN / passport)' },
-];
+const STEPS = ['Identity', 'Registration', 'Hospitals & fee', 'Payout', 'About'];
 
 /**
- * The 6-step "Add a doctor" wizard. All steps are one form (values survive going back and forth);
- * nothing is created until "Create doctor". Documents go straight from this browser to private storage.
+ * The 5-step "Add a doctor" wizard. All steps are one form (values survive going back and forth);
+ * nothing is created until "Create doctor". No documents: the registration number is checked on the council's site.
  */
 export function DoctorWizard({
   types,
@@ -27,20 +22,8 @@ export function DoctorWizard({
 }) {
   const [step, setStep] = useState(0);
   const [state, run, pending] = useActionState(createDoctor, null);
-  const [docs, setDocs] = useState<Record<string, { key?: string; name?: string; busy?: boolean; error?: string }>>({});
   const [fee, setFee] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
-
-  async function upload(kind: string, file: File | undefined) {
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) return setDocs((d) => ({ ...d, [kind]: { error: 'This file is over 10 MB.' } }));
-    setDocs((d) => ({ ...d, [kind]: { busy: true, name: file.name } }));
-    const link = await documentUploadUrl(file.type || 'application/pdf');
-    if ('error' in link) return setDocs((d) => ({ ...d, [kind]: { error: link.error } }));
-    const res = await fetch(link.url, { method: 'PUT', headers: link.headers, body: file }).catch(() => null);
-    if (!res?.ok) return setDocs((d) => ({ ...d, [kind]: { error: 'Upload failed. Please try again.' } }));
-    setDocs((d) => ({ ...d, [kind]: { key: link.key, name: file.name } }));
-  }
 
   if (state?.ok && state.data) {
     return (
@@ -136,20 +119,6 @@ export function DoctorWizard({
         </div>
 
         <div style={show(2)}>
-          <h3>Documents</h3>
-          <p className="muted" style={{ marginTop: 0 }}>PDF, JPG or PNG, up to 10 MB each. Stored privately; only admins open them, with 5-minute links.</p>
-          {DOCS.map((d) => (
-            <Field key={d.kind} label={d.label}>
-              <input type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => upload(d.kind, e.target.files?.[0])} />
-              <input type="hidden" name={`doc_${d.kind}`} value={docs[d.kind]?.key ?? ''} />
-              {docs[d.kind]?.busy ? <span className="faint">Uploading…</span> : null}
-              {docs[d.kind]?.key ? <span className="result ok">Uploaded: {docs[d.kind]?.name}</span> : null}
-              {docs[d.kind]?.error ? <span className="err">{docs[d.kind]?.error}</span> : null}
-            </Field>
-          ))}
-        </div>
-
-        <div style={show(3)}>
           <h3>Hospitals and fee</h3>
           <table className="register" style={{ marginBottom: 12 }}>
             <thead>
@@ -188,14 +157,14 @@ export function DoctorWizard({
           ) : null}
         </div>
 
-        <div style={show(4)}>
+        <div style={show(3)}>
           <h3>Payout</h3>
           <p className="muted">
             The doctor&apos;s bank account (Razorpay Route) is added from the doctor page after creation, with a fresh authenticator code. Bookings can open before it is active; the doctor&apos;s money waits until it is.
           </p>
         </div>
 
-        <div style={show(5)}>
+        <div style={show(4)}>
           <h3>About (optional)</h3>
           <Field label="About the doctor" hint="up to 240 letters; the doctor can change it in the app">
             <textarea name="about" maxLength={240} />

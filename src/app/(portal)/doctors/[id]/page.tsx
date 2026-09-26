@@ -4,8 +4,7 @@ import { load } from '@/lib/api';
 import { ago, can, dateTime, day, rupees, words, type Money } from '@/lib/format';
 import { me } from '@/lib/me';
 
-import { doctorCommand, linkHospital, reviewDocument, savePayout, unlinkHospital, updateDoctor } from '../../actions';
-import { DocumentLink } from './document-link';
+import { doctorCommand, linkHospital, savePayout, unlinkHospital, updateDoctor } from '../../actions';
 
 interface Doctor {
   id: string;
@@ -42,7 +41,7 @@ interface Doctor {
   timings: { hospitalId: string; days: { weekday: number; blocks: { start: string; end: string; perHour: number }[] }[] }[];
 }
 
-const TABS = ['overview', 'documents', 'hospitals', 'money', 'login', 'history'] as const;
+const TABS = ['overview', 'hospitals', 'money', 'login', 'history'] as const;
 const WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default async function DoctorPage({ params, searchParams }: PageProps<'/doctors/[id]'>) {
@@ -124,18 +123,21 @@ export default async function DoctorPage({ params, searchParams }: PageProps<'/d
             <section className="slip">
               <h3>Verification checklist</h3>
               <ul className="checklist">
-                <li className={d.checklist.degreeApproved ? 'done' : ''}>Degree certificate approved</li>
-                <li className={d.checklist.registrationApproved ? 'done' : ''}>Registration certificate approved</li>
-                <li className={d.checklist.idApproved ? 'done' : ''}>ID approved</li>
+                <li className={d.regNo ? 'done' : ''}><span>Registration number on record <span className="mono">{d.regCouncil} {d.regNo}</span></span></li>
                 <li className={d.checklist.hospitalLinked ? 'done' : ''}>At least one hospital linked</li>
                 <li className={d.checklist.payoutActive ? 'done' : ''}><span>Payout account active <span className="faint">(or going live without payouts on purpose)</span></span></li>
-                <li>Name and number checked on the council website</li>
+                <li>
+                  <span>
+                    Name and number checked on the council website:{' '}
+                    <a href="https://www.nmc.org.in/information-desk/indian-medical-register/" target="_blank" rel="noreferrer">NMC register</a>
+                  </span>
+                </li>
               </ul>
               {d.verificationNote ? <div className="notice warn">{d.verificationNote}</div> : null}
               {edit && d.verification !== 'verified' ? (
                 <>
                   <ActionForm action={doctorCommand} submit="Verify doctor" hidden={{ id: d.id, cmd: 'verify' }} confirm="You checked the list above? Patients will be able to find and book this doctor.">
-                    <Field label="What you checked"><input name="reason" minLength={5} required placeholder="All documents checked, council record matches" /></Field>
+                    <Field label="What you checked"><input name="reason" minLength={5} required placeholder="Council record matches the name and number" /></Field>
                   </ActionForm>
                   <div style={{ marginTop: 10 }}>
                     <ActionForm action={doctorCommand} submit="Needs correction" hidden={{ id: d.id, cmd: 'needs-correction' }}>
@@ -160,33 +162,6 @@ export default async function DoctorPage({ params, searchParams }: PageProps<'/d
             ) : null}
           </div>
         </div>
-      ) : null}
-
-      {tab === 'documents' ? (
-        <table className="register">
-          <thead><tr><th>Document</th><th>Added</th><th>Status</th><th>Open</th><th>Review</th></tr></thead>
-          <tbody>
-            {d.documents.length === 0 ? <tr><td colSpan={5} className="muted">No documents yet.</td></tr> : null}
-            {d.documents.map((x) => (
-              <tr key={x.id}>
-                <td>{words(x.kind)}<span className="sub">{x.note}</span></td>
-                <td className="muted">{dateTime(x.createdAt)}</td>
-                <td><Stamp s={x.status} /></td>
-                <td><DocumentLink doctorId={d.id} docId={x.id} /></td>
-                <td>
-                  {edit && x.status === 'pending' ? (
-                    <div className="actions">
-                      <ActionForm action={reviewDocument} submit="Approve" small inline hidden={{ id: d.id, docId: x.id, status: 'approved' }} />
-                      <ActionForm action={reviewDocument} submit="Reject" small inline danger hidden={{ id: d.id, docId: x.id, status: 'rejected' }}>
-                        <input name="note" placeholder="Why" required style={{ width: 160, marginRight: 6 }} />
-                      </ActionForm>
-                    </div>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       ) : null}
 
       {tab === 'hospitals' ? <HospitalsTab d={d} edit={edit} /> : null}

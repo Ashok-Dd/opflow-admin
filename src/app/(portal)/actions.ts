@@ -22,9 +22,6 @@ export async function createDoctor(_: ActionResult, f: FormData): Promise<Action
   return runAction(f, async () => {
     const hospitals = f.getAll('hospitalId').map(String).filter(Boolean);
     const primary = str(f, 'primaryHospital') || hospitals[0];
-    const documents = ['degree', 'registration', 'id_proof']
-      .map((kind) => ({ kind, key: str(f, `doc_${kind}`) }))
-      .filter((d) => d.key);
     const body = {
       name: str(f, 'name'),
       gender: str(f, 'gender'),
@@ -40,22 +37,12 @@ export async function createDoctor(_: ActionResult, f: FormData): Promise<Action
       about: optStr(f, 'about'),
       feePaise: rupeesToPaise(str(f, 'fee')),
       hospitals: hospitals.map((h) => ({ hospitalId: h, isPrimary: h === primary })),
-      documents,
       photoUploadKey: optStr(f, 'photoKey'),
     };
     const r = await api<{ doctorId: string; loginId: string; oneTimePassword: string }>('POST', '/v1/admin/doctors', { body, idempotent: true });
     revalidatePath('/doctors');
     return { message: 'Doctor created.', data: r };
   });
-}
-
-/** Upload link for a wizard document (the browser then PUTs the file straight to storage). */
-export async function documentUploadUrl(contentType: string): Promise<{ key: string; url: string; headers: Record<string, string> } | { error: string }> {
-  try {
-    return await api('POST', '/v1/admin/uploads/document-url', { body: { contentType } });
-  } catch (err) {
-    return { error: (err as Error).message };
-  }
 }
 
 export async function updateDoctor(_: ActionResult, f: FormData): Promise<ActionResult> {
@@ -110,22 +97,6 @@ export async function doctorCommand(_: ActionResult, f: FormData): Promise<Actio
       : messages[cmd];
     return { message, data: r.oneTimePassword ? { loginId: r.loginId, oneTimePassword: r.oneTimePassword } : undefined };
   });
-}
-
-export async function reviewDocument(_: ActionResult, f: FormData): Promise<ActionResult> {
-  return runAction(f, async () => {
-    const id = str(f, 'id');
-    await api('POST', `/v1/admin/doctors/${id}/documents/${str(f, 'docId')}/review`, { body: { status: str(f, 'status'), note: optStr(f, 'note') } });
-    return done(str(f, 'status') === 'approved' ? 'Document approved.' : 'Document rejected.', `/doctors/${id}`);
-  });
-}
-
-export async function openDocument(doctorId: string, docId: string): Promise<{ url: string } | { error: string }> {
-  try {
-    return await api('GET', `/v1/admin/doctors/${doctorId}/documents/${docId}/url`);
-  } catch (err) {
-    return { error: (err as Error).message };
-  }
 }
 
 export async function linkHospital(_: ActionResult, f: FormData): Promise<ActionResult> {

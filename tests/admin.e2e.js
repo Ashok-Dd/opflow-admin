@@ -97,12 +97,6 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   await a.select('select[name=typeId]', 'general'); await a.type('input[name=degrees]', 'MBBS, MD (General Medicine)');
   await a.type('input[name=regCouncil]', 'APMC'); await a.type('input[name=regNo]', 'E2E' + Date.now().toString().slice(-6)); await a.type('input[name=years]', '9');
   await clickText(a, 'Next');
-  fs.writeFileSync('degree.pdf', '%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF');
-  const [file] = await a.$$('input[type=file]'); await file.uploadFile('degree.pdf');
-  await a.waitForSelector('.result.ok', { timeout: 15000 }).catch(() => null);
-  check('Wizard: document uploads straight to storage', !!(await a.$('.result.ok')));
-  await a.screenshot({ path: 'shots/04-wizard-documents.png' });
-  await clickText(a, 'Next');
   await a.click('input[name=hospitalId]'); await a.type('input[name=fee]', '400'); await a.type('input[name=languages]', 'Telugu, English');
   await a.screenshot({ path: 'shots/05-wizard-hospitals.png' });
   await clickText(a, 'Next'); await clickText(a, 'Next');
@@ -125,7 +119,7 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   for (const f of await a.$$('form')) {
     const t = await f.evaluate((e) => e.innerText);
     if (t.includes('Verify doctor')) {
-      await (await f.$('input[name=reason]')).type('All documents checked, council record matches');
+      await (await f.$('input[name=reason]')).type('Council record matches the name and number');
       await (await f.$('button')).click();
       break;
     }
@@ -146,7 +140,7 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   check('No admins page any more', (await a.evaluate(() => document.body.innerText)).includes('Page not found'));
 
   // 5. Every page opens without errors
-  const pages = ['/', '/attention', '/live', '/emergency', '/doctors', doctorHref + '?tab=documents', doctorHref + '?tab=hospitals', doctorHref + '?tab=money', doctorHref + '?tab=login', doctorHref + '?tab=history', '/hospitals', '/hospitals/new', '/money', '/money?tab=payouts', '/money?tab=payments', '/money?tab=reconciliation', '/settings/rules'];
+  const pages = ['/', '/attention', '/live', '/emergency', '/doctors', doctorHref + '?tab=hospitals', doctorHref + '?tab=money', doctorHref + '?tab=login', doctorHref + '?tab=history', '/hospitals', '/hospitals/new', '/money', '/money?tab=payouts', '/money?tab=payments', '/money?tab=reconciliation', '/settings/rules'];
   for (const path of pages) {
     await go(a, path);
     const bad = await a.evaluate(() => {
@@ -166,6 +160,19 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   await go(a, '/doctors'); await a.screenshot({ path: 'shots/13-mobile-doctors.png', fullPage: true });
   const overflow = await a.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   check('No sideways scrolling on a phone', !overflow);
+  // The menu hides behind ☰ on a phone: it slides in, and closes after picking a page.
+  const menuHidden = await a.evaluate(() => document.querySelector('.index').getBoundingClientRect().right <= 0);
+  check('Phone: menu is hidden until ☰ is tapped', menuHidden);
+  await a.click('.burger'); await new Promise((r) => setTimeout(r, 400));
+  const menuShown = await a.evaluate(() => document.querySelector('.index').getBoundingClientRect().left >= 0);
+  await a.screenshot({ path: 'shots/14-mobile-menu.png' });
+  check('Phone: ☰ opens the menu', menuShown);
+  await a.evaluate(() => [...document.querySelectorAll('.index a')].find((x) => x.getAttribute('href') === '/hospitals').click());
+  await a.waitForFunction(() => location.pathname === '/hospitals', { timeout: 10000 }).catch(() => null);
+  await new Promise((r) => setTimeout(r, 500));
+  const closedAfter = await a.evaluate(() => location.pathname === '/hospitals' && document.querySelector('.index').getBoundingClientRect().right <= 0);
+  check('Phone: picking a page opens it and closes the menu', closedAfter);
+  await a.screenshot({ path: 'shots/15-mobile-hospitals.png', fullPage: true });
 
   // 7. Sign out ends the session
   await a.setViewport({ width: 1440, height: 900 });
