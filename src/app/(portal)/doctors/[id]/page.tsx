@@ -368,68 +368,127 @@ async function PickTab({ d, edit }: { d: Doctor; edit: boolean }) {
   if (r.error) return <LoadError error={r.error} />;
   const { pick, feedback } = r.data;
   const reasons = [...(pick?.reasons ?? []), '', '', '', ''].slice(0, 4);
+  const shown = (pick?.reasons ?? []).filter(Boolean);
+  const verified = d.verification === 'verified';
   const stars = (n: number) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
   return (
     <div className="cols">
       <div>
-        <Sec title="OPflow pick" note="Patients who pay ₹99 for “Find Your Right Doctor” may see this doctor">
+        <section className="slip">
+          <h3>
+            OPflow pick{' '}
+            <Stamp s={pick?.active ? 'active' : 'off'} label={pick?.active ? `suggested · rank ${pick.rank}` : 'not suggested'} />
+          </h3>
           <p className="muted" style={{ marginTop: 0 }}>
-            {pick?.active ? `Suggested now · rank ${pick.rank} (1 = first)` : 'Not suggested.'} Picks follow the published criteria:
-            qualifications, experience, training, practice areas and private patient feedback. Doctors can never pay to be picked.
+            Patients who pay for “Find Your Right Doctor” near this doctor may see them, with the reasons below. Choose picks by the
+            published criteria: qualifications, experience, training, practice areas and private patient feedback. Doctors can never
+            pay to be picked.
           </p>
-          {edit ? (
+          {!verified ? (
+            <p className="result bad">Only a verified doctor can be picked. Verify this doctor first.</p>
+          ) : edit ? (
             <ActionForm
               action={savePick}
-              submit="Save"
+              submit="Save pick"
               hidden={{ id: d.id }}
               confirm={{
                 title: `Save ${d.name}'s pick?`,
-                text: 'When switched on, patients who pay for a suggestion near this doctor may see them, with the reasons below.',
+                text: 'When switched on, patients who pay for a suggestion near this doctor may see them, with these reasons.',
                 yes: 'Yes, save',
               }}
             >
-              <label className="actions" style={{ marginBottom: 12 }}>
-                <input type="checkbox" name="active" defaultChecked={pick?.active ?? false} disabled={d.verification !== 'verified'} /> Suggest this doctor
-                {d.verification !== 'verified' ? <span className="sub">Only verified doctors can be picked.</span> : null}
-              </label>
-              <Field label="Rank" hint="1 is shown first; ties go by feedback, then distance">
-                <select name="rank" defaultValue={String(pick?.rank ?? 5)}>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
-              </Field>
-              {reasons.map((v, i) => (
-                <Field key={i} label={`Reason ${i + 1}`} hint={i === 0 ? 'patients see these, e.g. “MD Dermatology, 12 years”' : 'optional'}>
-                  <input name={`reason${i + 1}`} defaultValue={v} maxLength={90} required={i === 0} placeholder={i === 0 ? `${d.degrees}, ${d.yearsExperience} years` : ''} />
+              <div className="grid2">
+                <Field label="Suggest this doctor">
+                  <label className="actions" style={{ minHeight: 44 }}>
+                    <input type="checkbox" name="active" defaultChecked={pick?.active ?? false} /> Yes, suggest to patients
+                  </label>
                 </Field>
-              ))}
+                <Field label="Rank" hint="1 is shown first">
+                  <select name="rank" defaultValue={String(pick?.rank ?? 5)}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                        {n === 1 ? ' (first)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+              <p className="muted" style={{ margin: '4px 0 10px' }}>
+                Reasons patients see (short and true — e.g. “{d.degrees}, {d.yearsExperience} years”). The first is required.
+              </p>
+              <div className="grid2">
+                {reasons.map((v, i) => (
+                  <Field key={i} label={`Reason ${i + 1}`} hint={i === 0 ? 'required' : 'optional'}>
+                    <input
+                      name={`reason${i + 1}`}
+                      defaultValue={v}
+                      maxLength={90}
+                      required={i === 0}
+                      placeholder={
+                        i === 0 ? `${d.degrees}, ${d.yearsExperience} years` : i === 1 ? 'What they are known for' : i === 2 ? 'Languages spoken' : ''
+                      }
+                    />
+                  </Field>
+                ))}
+              </div>
             </ActionForm>
           ) : null}
-        </Sec>
+        </section>
+
+        <section className="slip">
+          <h3>What patients will see</h3>
+          <div style={{ border: '1px solid var(--rule)', padding: '14px 16px', background: 'var(--card)' }}>
+            <div className="mono" style={{ fontSize: 11, letterSpacing: '0.12em', color: 'var(--forest)' }}>SUGGESTION</div>
+            <div style={{ font: '500 20px var(--serif)', margin: '4px 0 2px' }}>{d.name}</div>
+            <div className="muted" style={{ marginBottom: 10 }}>{d.degrees} · {d.yearsExperience} years · {d.fee.display}</div>
+            <div style={{ background: 'var(--mint-soft)', border: '1px solid var(--rule)', padding: '10px 12px' }}>
+              <b style={{ color: 'var(--forest)', fontSize: 13.5 }}>Why OPflow suggests this doctor</b>
+              {shown.length ? (
+                <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                  {shown.map((x) => <li key={x}>{x}</li>)}
+                </ul>
+              ) : (
+                <p className="faint" style={{ margin: '6px 0 0' }}>No reasons saved yet.</p>
+              )}
+            </div>
+            <p className="faint" style={{ fontSize: 12.5, margin: '10px 0 0' }}>This is a recommendation, not a guarantee of treatment outcome.</p>
+          </div>
+        </section>
       </div>
+
       <div>
-        <Sec title="Private patient feedback" note="Only OPflow sees this — never the doctor or other patients">
+        <section className="slip">
+          <h3>Private patient feedback</h3>
+          <p className="muted" style={{ marginTop: 0 }}>Only OPflow sees this — never the doctor or other patients. Use it when choosing picks.</p>
           {feedback.count === 0 ? (
-            <p className="muted">No feedback yet.</p>
+            <p className="faint">No feedback yet. Patients can rate a visit after it is done.</p>
           ) : (
             <>
-              <p style={{ marginTop: 0 }}>
-                <b style={{ fontSize: 22 }}>{feedback.average?.toFixed(1)}</b> <span className="muted">{stars(feedback.average ?? 0)} · {feedback.count} visit{feedback.count === 1 ? '' : 's'}</span>
-              </p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '4px 0 12px' }}>
+                <b style={{ font: '500 34px var(--serif)', color: 'var(--forest)' }}>{feedback.average?.toFixed(1)}</b>
+                <span style={{ color: 'var(--amber)', letterSpacing: 2 }}>{stars(feedback.average ?? 0)}</span>
+                <span className="muted">
+                  {feedback.count} visit{feedback.count === 1 ? '' : 's'}
+                </span>
+              </div>
               <table className="register">
-                <thead><tr><th>Rating</th><th>Note</th><th>When</th></tr></thead>
+                <thead>
+                  <tr><th>Rating</th><th>Note</th><th>When</th></tr>
+                </thead>
                 <tbody>
                   {feedback.recent.map((f) => (
                     <tr key={f.bookingId}>
-                      <td className="mono">{stars(f.rating)}</td>
+                      <td style={{ color: 'var(--amber)', whiteSpace: 'nowrap' }}>{stars(f.rating)}</td>
                       <td>{f.note ?? <span className="faint">—</span>}</td>
-                      <td className="muted">{day(f.createdAt)}</td>
+                      <td className="muted" style={{ whiteSpace: 'nowrap' }}>{day(f.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </>
           )}
-        </Sec>
+        </section>
       </div>
     </div>
   );

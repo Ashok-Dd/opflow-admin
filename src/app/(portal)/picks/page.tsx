@@ -36,7 +36,8 @@ export default async function PicksPage() {
         <Empty title="No picks yet.">Open a verified doctor → OPflow pick, write the reasons and switch it on.</Empty>
       ) : (
         [...groups.entries()].map(([type, items]) => (
-          <Sec key={type} title={type}>
+          <section key={type} style={{ marginBottom: 26 }}>
+            <Sec title={type} note={`${items.length} doctor${items.length === 1 ? '' : 's'}`} />
             <table className="register">
               <thead>
                 <tr><th>Doctor</th><th>City</th><th className="num">Rank</th><th>Reasons patients see</th><th className="num">Feedback</th><th>Status</th></tr>
@@ -54,7 +55,7 @@ export default async function PicksPage() {
                 ))}
               </tbody>
             </table>
-          </Sec>
+          </section>
         ))
       )}
     </>
