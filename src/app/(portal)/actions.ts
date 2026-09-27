@@ -129,12 +129,33 @@ export async function savePayout(_: ActionResult, f: FormData): Promise<ActionRe
         accountNumber: str(f, 'accountNumber'),
         accountNumberAgain: str(f, 'accountNumberAgain'),
         ifsc: str(f, 'ifsc').toUpperCase(),
-        pan: str(f, 'pan').toUpperCase(),
-        email: str(f, 'email'),
-        address: { street: str(f, 'street'), city: str(f, 'city'), state: str(f, 'state'), pin: str(f, 'pin') },
+        email: str(f, 'email') || undefined,
       },
     });
-    return done(`Payout account saved (…${r.bankLast4}, ${r.status}).`, `/doctors/${id}`);
+    return done(
+      r.status === 'active' ? `Bank account …${r.bankLast4} verified by Cashfree. Payouts can go to it.` : `Bank account …${r.bankLast4} saved; Cashfree is still checking it.`,
+      `/doctors/${id}`,
+    );
+  });
+}
+
+/** Cashfree finished checking a bank account later: ask again. */
+export async function refreshPayout(_: ActionResult, f: FormData): Promise<ActionResult> {
+  return runAction(f, async () => {
+    const id = str(f, 'id');
+    const r = await api<{ status: string | null }>('POST', `/v1/admin/doctors/${id}/payout-account/refresh`, { body: {} });
+    return done(r.status === 'active' ? 'The bank account is verified now.' : 'Cashfree is still checking this bank account. Try again later.', `/doctors/${id}`);
+  });
+}
+
+/** Pay what is due to doctors now (the same as the hourly run). */
+export async function runPayouts(_: ActionResult, f: FormData): Promise<ActionResult> {
+  return runAction(f, async () => {
+    const r = await api<{ released: number; waiting: number; payouts: number }>('POST', '/v1/admin/payouts/run', { body: {} });
+    return done(
+      r.payouts ? `${r.payouts} bank payout${r.payouts === 1 ? '' : 's'} sent for ${r.released} visit${r.released === 1 ? '' : 's'}.` : 'Nothing is due to be paid right now.',
+      '/money?tab=payouts',
+    );
   });
 }
 

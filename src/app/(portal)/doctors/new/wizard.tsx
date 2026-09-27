@@ -367,7 +367,7 @@ export function DoctorWizard({
         <div style={show(3)}>
           <h3>Payout</h3>
           <p className="muted">
-            The doctor&apos;s bank account (Razorpay Route) is added from the doctor page after creation, with a fresh authenticator code. Bookings can open before it is active; the doctor&apos;s money waits until it is.
+            The doctor&apos;s bank account (Cashfree Payouts) is added from the doctor page after creation, with a fresh authenticator code. Bookings can open before it is active; the doctor&apos;s money waits until it is.
           </p>
         </div>
 

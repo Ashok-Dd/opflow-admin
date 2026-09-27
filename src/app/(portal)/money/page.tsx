@@ -1,9 +1,9 @@
 import { ActionForm } from '@/components/action-form';
 import { Empty, Head, LoadError, sp, Stamp } from '@/components/ui';
 import { load } from '@/lib/api';
-import { dateTime, day, rupees, todayIst, words, type Money } from '@/lib/format';
+import { dateTime, rupees, todayIst, words, type Money } from '@/lib/format';
 
-import { refundCommand, refundPick } from '../actions';
+import { refundCommand, refundPick, runPayouts } from '../actions';
 
 export const metadata = { title: 'Refunds & payouts' };
 
@@ -46,7 +46,7 @@ function StatusFilter({ tab, options, value }: { tab: string; options: string[];
 }
 
 async function Refunds({ status }: { status?: string }) {
-  const r = await load<{ id: string; amountPaise: number; reason: string; status: string; attempts: number; failureReason: string | null; razorpayRefundId: string | null; manualReference: string | null; createdAt: string; bookingId: string; code: string; patientName: string }[]>('/v1/admin/refunds', { status, limit: 50 });
+  const r = await load<{ id: string; amountPaise: number; reason: string; status: string; attempts: number; failureReason: string | null; gatewayRefundId: string | null; manualReference: string | null; createdAt: string; bookingId: string; code: string; patientName: string }[]>('/v1/admin/refunds', { status, limit: 50 });
   return (
     <>
       <StatusFilter tab="refunds" options={['pending', 'failed', 'processed']} value={status} />
@@ -64,12 +64,12 @@ async function Refunds({ status }: { status?: string }) {
                 <td>
                   {x.status === 'failed' ? (
                     <div className="actions">
-                      <ActionForm action={refundCommand} submit="Try again" small inline hidden={{ id: x.id, cmd: 'retry' }} confirm={{ title: 'Try this refund again?', text: 'Razorpay is asked to send the money back to the patient again.', yes: 'Yes, try again' }} />
+                      <ActionForm action={refundCommand} submit="Try again" small inline hidden={{ id: x.id, cmd: 'retry' }} confirm={{ title: 'Try this refund again?', text: 'Cashfree is asked to send the money back to the patient again.', yes: 'Yes, try again' }} />
                       <ActionForm action={refundCommand} submit="Paid by bank" small inline hidden={{ id: x.id, cmd: 'mark-paid' }} confirm={{ title: 'Mark as paid by bank?', text: 'Only when the money really reached the patient by bank transfer. This closes the refund.', yes: 'Yes, it is paid' }}>
                         <input name="utr" placeholder="UTR number" required pattern="[A-Za-z0-9]{8,40}" style={{ width: 150, marginRight: 6 }} />
                       </ActionForm>
                     </div>
-                  ) : <span className="mono faint">{x.razorpayRefundId ?? x.manualReference ?? ''}</span>}
+                  ) : <span className="mono faint">{x.gatewayRefundId ?? x.manualReference ?? ''}</span>}
                 </td>
               </tr>
             ))}
@@ -81,21 +81,30 @@ async function Refunds({ status }: { status?: string }) {
 }
 
 async function Payouts({ status }: { status?: string }) {
-  const r = await load<{ id: string; doctorId: string; doctor: string; amountPaise: number; status: string; releaseAt: string; releasedAt: string | null; code: string }[]>('/v1/admin/transfers', { status, limit: 50 });
+  const r = await load<{ id: string; doctorId: string; doctor: string; amountPaise: number; visitsPaise: number; deductedPaise: number; status: string; utr: string | null; failureReason: string | null; createdAt: string; settledAt: string | null; bankLast4: string | null; visits: number }[]>('/v1/admin/payouts', { status, limit: 50 });
   return (
     <>
-      <StatusFilter tab="payouts" options={['on_hold', 'released', 'reversed', 'failed']} value={status} />
+      <div className="actions" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
+        <StatusFilter tab="payouts" options={['pending', 'success', 'failed']} value={status} />
+        <ActionForm
+          action={runPayouts}
+          submit="Pay doctors now"
+          confirm={{ title: 'Pay doctors now?', text: 'Sends one Cashfree bank payout to each doctor for every visit that is over and due (the same as the hourly run). Nothing is paid twice.', yes: 'Yes, pay now' }}
+        />
+      </div>
+      <p className="muted" style={{ marginTop: 0 }}>One payout per doctor per run (every hour), for visits over 24 h ago. Smaller than the minimum (Rules → payouts.min_paise) waits for the next run.</p>
       {r.error ? <LoadError error={r.error} /> : r.data.length === 0 ? <Empty title="No payouts here." /> : (
         <table className="register">
-          <thead><tr><th>Doctor</th><th>Booking</th><th className="num">Amount</th><th>Status</th><th>Release</th></tr></thead>
+          <thead><tr><th>Doctor</th><th className="num">Visits</th><th className="num">Amount</th><th>Status</th><th>Bank ref.</th><th>Sent</th></tr></thead>
           <tbody>
-            {r.data.map((t) => (
-              <tr key={t.id}>
-                <td><a className="rowlink" href={`/doctors/${t.doctorId}?tab=money`}>{t.doctor}</a></td>
-                <td className="mono">{t.code}</td>
-                <td className="num">{rupees(t.amountPaise)}</td>
-                <td><Stamp s={t.status} /></td>
-                <td className="muted">{t.releasedAt ? `sent ${dateTime(t.releasedAt)}` : day(t.releaseAt)}</td>
+            {r.data.map((x) => (
+              <tr key={x.id}>
+                <td><a className="rowlink" href={`/doctors/${x.doctorId}?tab=money`}>{x.doctor}</a>{x.bankLast4 ? <span className="sub">account …{x.bankLast4}</span> : null}</td>
+                <td className="num">{x.visits}</td>
+                <td className="num">{rupees(x.amountPaise)}{x.deductedPaise ? <span className="sub">−{rupees(x.deductedPaise)} taken back</span> : null}</td>
+                <td><Stamp s={x.status} />{x.failureReason ? <span className="sub">{x.failureReason}</span> : null}</td>
+                <td className="mono">{x.utr ?? '—'}</td>
+                <td className="muted">{dateTime(x.createdAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -106,18 +115,18 @@ async function Payouts({ status }: { status?: string }) {
 }
 
 async function Payments({ status }: { status?: string }) {
-  const r = await load<{ id: string; bookingId: string; code: string; razorpayPaymentId: string | null; razorpayOrderId: string; amountPaise: number; status: string; method: string | null; failureReason: string | null; createdAt: string }[]>('/v1/admin/payments', { status, limit: 50 });
+  const r = await load<{ id: string; bookingId: string; code: string; gatewayPaymentId: string | null; gatewayOrderId: string; amountPaise: number; status: string; method: string | null; failureReason: string | null; createdAt: string }[]>('/v1/admin/payments', { status, limit: 50 });
   return (
     <>
       <StatusFilter tab="payments" options={['created', 'captured', 'failed']} value={status} />
       {r.error ? <LoadError error={r.error} /> : r.data.length === 0 ? <Empty title="No payments here." /> : (
         <table className="register">
-          <thead><tr><th>Booking</th><th>Razorpay</th><th className="num">Amount</th><th>Method</th><th>Status</th><th>Made</th></tr></thead>
+          <thead><tr><th>Booking</th><th>Cashfree</th><th className="num">Amount</th><th>Method</th><th>Status</th><th>Made</th></tr></thead>
           <tbody>
             {r.data.map((p) => (
               <tr key={p.id}>
                 <td className="mono">{p.code}</td>
-                <td className="mono">{p.razorpayPaymentId ?? p.razorpayOrderId}</td>
+                <td className="mono">{p.gatewayPaymentId ?? p.gatewayOrderId}</td>
                 <td className="num">{rupees(p.amountPaise)}</td>
                 <td>{p.method ?? '—'}</td>
                 <td><Stamp s={p.status} />{p.failureReason ? <span className="sub">{p.failureReason}</span> : null}</td>

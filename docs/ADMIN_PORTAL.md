@@ -110,7 +110,7 @@ add a doctor. The same doctor record can't be added twice: registration council 
 | **2. Registration** | Type of doctor (from the catalog), degrees, medical council (NMC or state, e.g. APMC), registration number, year of registration | Council + number must be unique. A **"Check on council website"** button opens the official search in a new tab, and ops ticks "Registration matches the council record". |
 | **3. Documents** | Degree certificate, registration certificate, government ID (Aadhaar masked / PAN / passport) | PDF/JPG/PNG, max 10 MB each. Stored in the **private** bucket and viewed only through 5-minute signed links. Each document has approve/reject with a note. |
 | **4. Hospitals & fee** | One or more hospitals (search; or "Add hospital" if missing), primary hospital, fee (₹50–₹3,000; per-hospital override optional), languages | At least one hospital. The fee preview shows "Doctor gets ₹270 · OPflow ₹30". |
-| **5. Payout** | Bank account holder, account number (entered twice), IFSC, PAN | Creates a **Razorpay Route linked account**. A penny-drop check confirms the name matches. The doctor can't receive money until it's active (bookings can still open; transfers wait). |
+| **5. Payout** | Bank account holder, account number (entered twice), IFSC | Creates a **Cashfree Payouts beneficiary**; Cashfree checks the account with the bank. The doctor can't receive money until it's verified (bookings can still open; their 90% waits). |
 | **6. Photo & about** (optional) | Profile photo, "About me" | Photo guideline shown (clear face, plain background). The doctor can also add these later from the app. |
 
 **"Create doctor"** then, in one transaction:
@@ -173,7 +173,7 @@ Sign in → Authenticator
 - failed refunds after 3 retries;
 - stuck bulk operations ("cancel day" at 12/18);
 - consistency-check failures;
-- Razorpay reconcile mismatches;
+- Cashfree reconcile mismatches, bank payouts refused or stuck;
 - expired approval requests;
 - doctors waiting for verification over 48 h;
 - documents rejected;
@@ -201,7 +201,7 @@ hospital, active/suspended, payout ready. Columns: photo, name, type, hospitals,
 
 **Bookings:**
 - Search by booking code (OPF7Q2K9), patient phone (exact match only), doctor, date or token.
-- Booking page: the ticket, the full timeline (`booking_events`), payment and refund details (Razorpay IDs link to the Razorpay dashboard), and the queue history for that day.
+- Booking page: the ticket, the full timeline (`booking_events`), payment and refund details (Cashfree order and payment IDs, to look up in the Cashfree dashboard), and the queue history for that day.
 - Actions: resend receipt, goodwill refund (limits in §1), and "move to another time" on the doctor's behalf (with the doctor's consent noted).
 
 **Live OPDs:** every running session: doctor, hospital, now-seeing token, waiting count, late minutes, time since the last
@@ -212,7 +212,7 @@ never press the doctor's buttons.
 - *Payments*: search and filter; failed payments by method.
 - *Refunds*: the queue (pending / failed); retry now; mark as paid manually with a UTR number (when the bank route fails).
 - *Payouts*: transfers due, released, reversed; per-doctor totals.
-- *Reconciliation*: daily report of captured − refunded vs the Razorpay settlement, with any mismatch rows. CSV export.
+- *Reconciliation*: daily report of captured − refunded vs the Cashfree settlement, with any mismatch rows. CSV export.
 
 **Patients:**
 - Search by phone number (exact) or booking code.

@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const kind = url.searchParams.get('kind') ?? '';
   const from = url.searchParams.get('from') ?? '';
   const to = url.searchParams.get('to') ?? '';
-  if (!['payments', 'refunds', 'transfers'].includes(kind) || !/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+  if (!['payments', 'refunds', 'transfers', 'payouts'].includes(kind) || !/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
     return new Response('Bad request', { status: 400 });
   }
   try {

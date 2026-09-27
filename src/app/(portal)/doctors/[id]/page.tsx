@@ -4,7 +4,7 @@ import { load } from '@/lib/api';
 import { ago, can, dateTime, day, rupees, words, type Money } from '@/lib/format';
 import { me } from '@/lib/me';
 
-import { doctorCommand, linkHospital, savePayout, savePick, unlinkHospital, updateDoctor } from '../../actions';
+import { doctorCommand, linkHospital, refreshPayout, savePayout, savePick, unlinkHospital, updateDoctor } from '../../actions';
 
 interface Doctor {
   id: string;
@@ -281,51 +281,77 @@ async function HospitalsTab({ d, edit }: { d: Doctor; edit: boolean }) {
 }
 
 async function MoneyTab({ d, edit }: { d: Doctor; edit: boolean }) {
-  const transfers = await load<{ id: string; amountPaise: number; status: string; releaseAt: string; code: string }[]>('/v1/admin/transfers', { doctor: d.id, limit: 50 });
+  const [payouts, visits] = await Promise.all([
+    load<{ id: string; amountPaise: number; visitsPaise: number; deductedPaise: number; status: string; utr: string | null; failureReason: string | null; createdAt: string; visits: number }[]>('/v1/admin/payouts', { doctor: d.id, limit: 30 }),
+    load<{ id: string; amountPaise: number; status: string; releaseAt: string; payoutStatus: string | null; recoverPaise: number; code: string }[]>('/v1/admin/transfers', { doctor: d.id, limit: 50 }),
+  ]);
   return (
     <div className="cols">
       <div>
-        <Sec title="Payouts" note="90% of each fee, released 24 h after the OPD" />
-        {transfers.error ? <LoadError error={transfers.error} /> : (
-          <table className="register">
-            <thead><tr><th>Booking</th><th className="num">Amount</th><th>Status</th><th>Release</th></tr></thead>
-            <tbody>
-              {transfers.data.length === 0 ? <tr><td colSpan={4} className="muted">No payouts yet.</td></tr> : null}
-              {transfers.data.map((t) => (
-                <tr key={t.id}>
-                  <td className="mono">{t.code}</td>
-                  <td className="num">{rupees(t.amountPaise)}</td>
-                  <td><Stamp s={t.status} /></td>
-                  <td className="muted">{day(t.releaseAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <section className="slip">
+          <h3>Bank payouts</h3>
+          <p className="muted" style={{ marginTop: 0 }}>One Cashfree payout per run covers all visits that are over (24 h after the OPD). Money taken back for a visit refunded after a payout comes off the next one.</p>
+          {payouts.error ? <LoadError error={payouts.error} /> : (
+            <table className="register">
+              <thead><tr><th>Sent</th><th className="num">Visits</th><th className="num">Amount</th><th>Status</th><th>Bank ref.</th></tr></thead>
+              <tbody>
+                {payouts.data.length === 0 ? <tr><td colSpan={5} className="muted">No payouts yet.</td></tr> : null}
+                {payouts.data.map((x) => (
+                  <tr key={x.id}>
+                    <td className="muted">{day(x.createdAt)}</td>
+                    <td className="num">{x.visits}</td>
+                    <td className="num">
+                      {rupees(x.amountPaise)}
+                      {x.deductedPaise ? <span className="sub">−{rupees(x.deductedPaise)} taken back</span> : null}
+                    </td>
+                    <td><Stamp s={x.status} />{x.failureReason ? <span className="sub">{x.failureReason}</span> : null}</td>
+                    <td className="mono">{x.utr ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+        <section className="slip">
+          <h3>Visits (the doctor&apos;s 90%)</h3>
+          {visits.error ? <LoadError error={visits.error} /> : (
+            <table className="register">
+              <thead><tr><th>Booking</th><th className="num">Amount</th><th>Status</th><th>Due</th></tr></thead>
+              <tbody>
+                {visits.data.length === 0 ? <tr><td colSpan={4} className="muted">No paid visits yet.</td></tr> : null}
+                {visits.data.map((t) => (
+                  <tr key={t.id}>
+                    <td className="mono">{t.code}</td>
+                    <td className="num">{rupees(t.amountPaise)}{t.recoverPaise ? <span className="sub">to take back</span> : null}</td>
+                    <td><Stamp s={t.status === 'released' && t.payoutStatus ? `payout_${t.payoutStatus}` : t.status} label={t.status === 'released' ? (t.payoutStatus === 'success' ? 'in bank' : 'on the way') : undefined} /></td>
+                    <td className="muted">{day(t.releaseAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
       </div>
       <section className="slip">
-        <h3>Bank account (Razorpay Route)</h3>
+        <h3>Bank account (Cashfree Payouts)</h3>
         {d.payout?.bankLast4 ? (
-          <p>Account …<span className="mono">{d.payout.bankLast4}</span> · {d.payout.ifsc} · <Stamp s={d.payout.status} /></p>
+          <p>Account …<span className="mono">{d.payout.bankLast4}</span> · {d.payout.ifsc} · <Stamp s={d.payout.status} label={d.payout.status === 'active' ? 'verified' : d.payout.status === 'pending' ? 'being checked' : undefined} /></p>
         ) : (
-          <p className="muted">No bank account yet.</p>
+          <p className="muted">No bank account yet. The doctor&apos;s money waits until one is added.</p>
         )}
+        {edit && d.payout?.status === 'pending' && d.payout.bankLast4 ? (
+          <ActionForm action={refreshPayout} submit="Check again" hidden={{ id: d.id }} />
+        ) : null}
         {edit ? (
           <ActionForm action={savePayout} submit={d.payout?.bankLast4 ? 'Replace account' : 'Add account'} hidden={{ id: d.id }} confirm={{ title: d.payout?.bankLast4 ? 'Replace the bank account?' : 'Add this bank account?', text: "The doctor's money is paid to this account from now on. Check the numbers once more.", yes: 'Yes, save account' }}>
-            <Field label="Account holder"><input name="holderName" required /></Field>
+            <Field label="Account holder (as in the bank)"><input name="holderName" required /></Field>
             <div className="grid2">
               <Field label="Account number"><input name="accountNumber" inputMode="numeric" autoComplete="off" required /></Field>
               <Field label="Again"><input name="accountNumberAgain" inputMode="numeric" autoComplete="off" required /></Field>
-              <Field label="IFSC"><input name="ifsc" required placeholder="SBIN0001234" /></Field>
-              <Field label="PAN"><input name="pan" required /></Field>
             </div>
-            <Field label="Email"><input name="email" type="email" required defaultValue={d.email ?? ''} /></Field>
-            <Field label="Address"><input name="street" required /></Field>
-            <div className="grid3">
-              <Field label="City"><input name="city" required /></Field>
-              <Field label="State"><input name="state" required defaultValue="Andhra Pradesh" /></Field>
-              <Field label="PIN"><input name="pin" required /></Field>
-            </div>
+            <Field label="IFSC"><input name="ifsc" required placeholder="SBIN0001234" /></Field>
+            <Field label="Email" hint="optional"><input name="email" type="email" defaultValue={d.email ?? ''} /></Field>
+            <p className="faint" style={{ fontSize: 12.5 }}>Cashfree checks the account with the bank. Only the last 4 digits are kept by OPflow.</p>
           </ActionForm>
         ) : null}
       </section>

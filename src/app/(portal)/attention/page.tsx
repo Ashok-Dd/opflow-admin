@@ -1,4 +1,4 @@
-import { Empty, Head, LoadError, Sec } from '@/components/ui';
+import { Empty, Head, LoadError, Sec, Stamp } from '@/components/ui';
 import { load } from '@/lib/api';
 import { ago, dateTime, rupees, words } from '@/lib/format';
 
@@ -14,6 +14,7 @@ interface Attention {
   holdsNotExpired: number;
   payoutsWaiting: Row[];
   unprocessedWebhooks: Row[];
+  payoutProblems: Row[];
   idleOpds: Row[];
 }
 
@@ -23,7 +24,7 @@ export default async function AttentionPage() {
   const d = a.data;
   const total =
     d.failedRefunds.length + d.stuckBulkOperations.length + d.doctorsWaitingOver48h.length +
-    d.payoutsWaiting.length + d.unprocessedWebhooks.length + d.idleOpds.length + d.rejectedDocuments.length + (d.holdsNotExpired ? 1 : 0);
+    d.payoutsWaiting.length + d.unprocessedWebhooks.length + d.payoutProblems.length + d.idleOpds.length + d.rejectedDocuments.length + (d.holdsNotExpired ? 1 : 0);
 
   return (
     <>
@@ -123,9 +124,28 @@ export default async function AttentionPage() {
 
 
 
+      {d.payoutProblems.length ? (
+        <>
+          <Sec title="Bank payouts to doctors that need a look" note="Refused by the bank (visits go back on hold and are paid in a later run once the account is fixed), or not settled after a day" />
+          <table className="register">
+            <thead><tr><th>Doctor</th><th className="num">Amount</th><th>Status</th><th>Sent</th></tr></thead>
+            <tbody>
+              {d.payoutProblems.map((r) => (
+                <tr key={String(r.id)}>
+                  <td><a className="rowlink" href={`/doctors/${String(r.doctorId)}?tab=money`}>{String(r.doctor)}</a></td>
+                  <td className="num">{rupees(Number(r.amountPaise))}</td>
+                  <td><Stamp s={String(r.status)} />{r.failureReason ? <span className="sub">{String(r.failureReason)}</span> : null}</td>
+                  <td className="muted">{dateTime(r.createdAt as string)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      ) : null}
+
       {d.unprocessedWebhooks.length ? (
         <>
-          <Sec title="Razorpay messages not processed" />
+          <Sec title="Cashfree messages not processed" />
           <table className="register">
             <thead><tr><th>Event</th><th>Received</th><th>Error</th></tr></thead>
             <tbody>
