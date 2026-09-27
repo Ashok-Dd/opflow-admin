@@ -23,6 +23,7 @@ export default async function PortalLayout({ children }: LayoutProps<'/'>) {
       items: [
         ...(can(r, 'doctors') ? [{ href: '/doctors', label: 'Doctors' }] : []),
         { href: '/hospitals', label: 'Hospitals' },
+        ...(can(r, 'addDoctor') ? [{ href: '/picks', label: 'Doctor picks' }] : []),
       ],
     },
     ...(can(r, 'money') ? [{ title: 'Money', items: [{ href: '/money', label: 'Refunds & payouts' }] }] : []),

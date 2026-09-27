@@ -226,3 +226,26 @@ export async function killSwitch(_: ActionResult, f: FormData): Promise<ActionRe
     return done('Turned OFF. Every server follows within about 15 seconds.', '/settings/rules');
   });
 }
+
+// ── "Find Your Right Doctor": OPflow picks (admin only) and the ₹99 suggestions ─────────────────────
+
+/** Make a doctor an OPflow pick, change rank / reasons, or switch it off. Doctors never pay for or see this. */
+export async function savePick(_: ActionResult, f: FormData): Promise<ActionResult> {
+  return runAction(f, async () => {
+    const id = str(f, 'id');
+    const reasons = [1, 2, 3, 4].map((n) => String(f.get(`reason${n}`) ?? '').trim()).filter(Boolean);
+    const r = await api<{ message: string }>('PUT', `/v1/admin/doctors/${id}/pick`, {
+      body: { active: f.get('active') === 'on', rank: Number(str(f, 'rank')) || 5, reasons },
+    });
+    revalidatePath('/picks');
+    return done(r.message, `/doctors/${id}`);
+  });
+}
+
+/** Give a patient's ₹99 back by hand. */
+export async function refundPick(_: ActionResult, f: FormData): Promise<ActionResult> {
+  return runAction(f, async () => {
+    const r = await api<{ message: string }>('POST', `/v1/admin/picks/purchases/${str(f, 'id')}/refund`, { body: { reason: str(f, 'reason') } });
+    return done(r.message, '/money');
+  });
+}

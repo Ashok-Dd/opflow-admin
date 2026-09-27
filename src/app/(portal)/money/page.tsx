@@ -3,11 +3,11 @@ import { Empty, Head, LoadError, sp, Stamp } from '@/components/ui';
 import { load } from '@/lib/api';
 import { dateTime, day, rupees, todayIst, words, type Money } from '@/lib/format';
 
-import { refundCommand } from '../actions';
+import { refundCommand, refundPick } from '../actions';
 
 export const metadata = { title: 'Refunds & payouts' };
 
-const TABS = ['refunds', 'payouts', 'payments', 'reconciliation'] as const;
+const TABS = ['refunds', 'payouts', 'payments', 'suggestions', 'reconciliation'] as const;
 
 export default async function MoneyPage({ searchParams }: PageProps<'/money'>) {
   const q = sp(await searchParams);
@@ -23,6 +23,7 @@ export default async function MoneyPage({ searchParams }: PageProps<'/money'>) {
       {tab === 'refunds' ? <Refunds status={q.status} /> : null}
       {tab === 'payouts' ? <Payouts status={q.status} /> : null}
       {tab === 'payments' ? <Payments status={q.status} /> : null}
+      {tab === 'suggestions' ? <Suggestions status={q.status} /> : null}
       {tab === 'reconciliation' ? <Reconciliation date={q.date ?? todayIst()} /> : null}
     </>
   );
@@ -155,6 +156,52 @@ async function Reconciliation({ date }: { date: string }) {
             {r.data.ok ? 'Every payment of this day has a doctor payout or a refund. Nothing is missing.' : `${r.data.mismatches} payment(s) have neither a payout nor a refund. Open the payments tab and check them.`}
           </div>
         </>
+      )}
+    </>
+  );
+}
+
+/** The ₹99 "Find Your Right Doctor" suggestions (OPflow keeps it all; no doctor share). */
+async function Suggestions({ status }: { status?: string }) {
+  const r = await load<{ items: { id: string; status: string; typeName: string; place: string | null; amountPaise: number; paidAt: string | null; createdAt: string; phone: string | null; count: number; refundReason: string | null }[] }>(
+    '/v1/admin/picks/purchases',
+    { status, limit: 50 },
+  );
+  return (
+    <>
+      <StatusFilter tab="suggestions" options={['paid', 'refunded']} value={status} />
+      {r.error ? <LoadError error={r.error} /> : r.data.items.length === 0 ? <Empty title="No suggestions sold yet." /> : (
+        <table className="register">
+          <thead><tr><th>Patient</th><th>Type of doctor</th><th>Area</th><th className="num">Doctors</th><th className="num">Amount</th><th>Status</th><th>Paid</th><th /></tr></thead>
+          <tbody>
+            {r.data.items.map((x) => (
+              <tr key={x.id}>
+                <td className="mono">{x.phone ?? '—'}</td>
+                <td>{x.typeName}</td>
+                <td>{x.place ?? <span className="faint">—</span>}</td>
+                <td className="num">{x.count}</td>
+                <td className="num">{rupees(x.amountPaise)}</td>
+                <td><Stamp s={x.status} />{x.refundReason ? <span className="sub">{x.refundReason}</span> : null}</td>
+                <td className="muted">{x.paidAt ? dateTime(x.paidAt) : '—'}</td>
+                <td>
+                  {x.status === 'paid' ? (
+                    <ActionForm
+                      action={refundPick}
+                      submit="Refund"
+                      small
+                      inline
+                      danger
+                      hidden={{ id: x.id }}
+                      confirm={{ title: 'Give this ₹99 back?', text: 'The patient gets the full amount back in 5–7 days. Their saved suggestion stays readable.', yes: 'Yes, refund' }}
+                    >
+                      <input name="reason" placeholder="Why" required minLength={5} style={{ width: 150, marginRight: 6 }} />
+                    </ActionForm>
+                  ) : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </>
   );

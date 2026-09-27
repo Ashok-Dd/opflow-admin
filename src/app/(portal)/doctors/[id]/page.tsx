@@ -4,7 +4,7 @@ import { load } from '@/lib/api';
 import { ago, can, dateTime, day, rupees, words, type Money } from '@/lib/format';
 import { me } from '@/lib/me';
 
-import { doctorCommand, linkHospital, savePayout, unlinkHospital, updateDoctor } from '../../actions';
+import { doctorCommand, linkHospital, savePayout, savePick, unlinkHospital, updateDoctor } from '../../actions';
 
 interface Doctor {
   id: string;
@@ -41,7 +41,7 @@ interface Doctor {
   timings: { hospitalId: string; days: { weekday: number; blocks: { start: string; end: string; perHour: number }[] }[] }[];
 }
 
-const TABS = ['overview', 'hospitals', 'money', 'login', 'history'] as const;
+const TABS = ['overview', 'hospitals', 'money', 'pick', 'login', 'history'] as const;
 const WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default async function DoctorPage({ params, searchParams }: PageProps<'/doctors/[id]'>) {
@@ -62,7 +62,7 @@ export default async function DoctorPage({ params, searchParams }: PageProps<'/d
       <nav className="tabs">
         {TABS.map((t) => (
           <a key={t} href={`?tab=${t}`} aria-current={t === tab ? 'page' : undefined}>
-            {t === 'login' ? 'Login & security' : words(t)}
+            {t === 'login' ? 'Login & security' : t === 'pick' ? 'OPflow pick' : words(t)}
           </a>
         ))}
       </nav>
@@ -205,6 +205,7 @@ export default async function DoctorPage({ params, searchParams }: PageProps<'/d
         </div>
       ) : null}
 
+      {tab === 'pick' ? <PickTab d={d} edit={edit} /> : null}
       {tab === 'history' ? <HistoryTab id={d.id} /> : null}
     </>
   );
@@ -350,5 +351,86 @@ async function HistoryTab({ id }: { id: string }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+interface PickInfo {
+  pick: { rank: number; reasons: string[]; active: boolean; updatedAt: string } | null;
+  feedback: { average: number | null; count: number; recent: { bookingId: string; rating: number; note: string | null; createdAt: string }[] };
+}
+
+/**
+ * "Find Your Right Doctor": the admin alone decides who OPflow suggests (rank + reasons patients see). Doctors can
+ * never pay for, ask for or see this. The private patient feedback below is only for this decision.
+ */
+async function PickTab({ d, edit }: { d: Doctor; edit: boolean }) {
+  const r = await load<PickInfo>(`/v1/admin/doctors/${d.id}/pick`);
+  if (r.error) return <LoadError error={r.error} />;
+  const { pick, feedback } = r.data;
+  const reasons = [...(pick?.reasons ?? []), '', '', '', ''].slice(0, 4);
+  const stars = (n: number) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
+  return (
+    <div className="cols">
+      <div>
+        <Sec title="OPflow pick" note="Patients who pay ₹99 for “Find Your Right Doctor” may see this doctor">
+          <p className="muted" style={{ marginTop: 0 }}>
+            {pick?.active ? `Suggested now · rank ${pick.rank} (1 = first)` : 'Not suggested.'} Picks follow the published criteria:
+            qualifications, experience, training, practice areas and private patient feedback. Doctors can never pay to be picked.
+          </p>
+          {edit ? (
+            <ActionForm
+              action={savePick}
+              submit="Save"
+              hidden={{ id: d.id }}
+              confirm={{
+                title: `Save ${d.name}'s pick?`,
+                text: 'When switched on, patients who pay for a suggestion near this doctor may see them, with the reasons below.',
+                yes: 'Yes, save',
+              }}
+            >
+              <label className="actions" style={{ marginBottom: 12 }}>
+                <input type="checkbox" name="active" defaultChecked={pick?.active ?? false} disabled={d.verification !== 'verified'} /> Suggest this doctor
+                {d.verification !== 'verified' ? <span className="sub">Only verified doctors can be picked.</span> : null}
+              </label>
+              <Field label="Rank" hint="1 is shown first; ties go by feedback, then distance">
+                <select name="rank" defaultValue={String(pick?.rank ?? 5)}>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </Field>
+              {reasons.map((v, i) => (
+                <Field key={i} label={`Reason ${i + 1}`} hint={i === 0 ? 'patients see these, e.g. “MD Dermatology, 12 years”' : 'optional'}>
+                  <input name={`reason${i + 1}`} defaultValue={v} maxLength={90} required={i === 0} placeholder={i === 0 ? `${d.degrees}, ${d.yearsExperience} years` : ''} />
+                </Field>
+              ))}
+            </ActionForm>
+          ) : null}
+        </Sec>
+      </div>
+      <div>
+        <Sec title="Private patient feedback" note="Only OPflow sees this — never the doctor or other patients">
+          {feedback.count === 0 ? (
+            <p className="muted">No feedback yet.</p>
+          ) : (
+            <>
+              <p style={{ marginTop: 0 }}>
+                <b style={{ fontSize: 22 }}>{feedback.average?.toFixed(1)}</b> <span className="muted">{stars(feedback.average ?? 0)} · {feedback.count} visit{feedback.count === 1 ? '' : 's'}</span>
+              </p>
+              <table className="register">
+                <thead><tr><th>Rating</th><th>Note</th><th>When</th></tr></thead>
+                <tbody>
+                  {feedback.recent.map((f) => (
+                    <tr key={f.bookingId}>
+                      <td className="mono">{stars(f.rating)}</td>
+                      <td>{f.note ?? <span className="faint">—</span>}</td>
+                      <td className="muted">{day(f.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </Sec>
+      </div>
+    </div>
   );
 }

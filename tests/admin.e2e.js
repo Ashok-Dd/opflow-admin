@@ -144,13 +144,32 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   check('Admin verifies the doctor at once', (await a.$eval('.head .stamp', (e) => e.textContent.toLowerCase())) === 'verified');
   const visible = await fetch(`${API}/v1/doctors/${doctorId}`);
   check('Doctor is now visible to patients', visible.status === 200);
+
+  // 4b. "Find Your Right Doctor": the admin (only) makes the doctor an OPflow pick, with reasons patients see.
+  await go(a, doctorHref + '?tab=pick');
+  check('Doctor page: OPflow pick tab and private feedback', (await a.evaluate(() => document.body.innerText)).includes('Private patient feedback'));
+  await a.click('input[name=active]');
+  await a.type('input[name=reason1]', 'MD General Medicine, 9 years');
+  await a.type('input[name=reason2]', 'Fever, BP and sugar care');
+  await clickText(a, 'Save');
+  check('Pick: asks first', await answer(a, 'pick?', 'Yes, save'));
+  await a.waitForFunction(() => document.body.innerText.includes('OPflow pick.') || !!document.querySelector('.result.bad'), { timeout: 15000 });
+  check('Pick: saved', (await a.evaluate(() => document.body.innerText)).includes('This doctor is an OPflow pick'));
+  await go(a, '/picks');
+  const picksText = await a.evaluate(() => document.body.innerText);
+  check('Doctor picks page lists the doctor with the reasons', picksText.includes('Meena Rao') && picksText.includes('MD General Medicine, 9 years'), picksText.slice(0, 200));
+  await a.screenshot({ path: 'shots/17-picks.png', fullPage: true });
+  await go(a, '/money?tab=suggestions');
+  check('Money: Suggestions tab opens', !(await a.$('.notice.bad')) && (await a.evaluate(() => document.body.innerText)).includes('No suggestions sold yet'));
+  await go(a, '/settings/rules');
+  check('Rules: the ₹99 price and the switch are there', (await a.evaluate(() => document.body.innerText)).includes('picks.price_paise'));
   await go(a, '/approvals');
   check('No approvals page any more', (await a.evaluate(() => document.body.innerText)).includes('Page not found'));
   await go(a, '/settings/admins');
   check('No admins page any more', (await a.evaluate(() => document.body.innerText)).includes('Page not found'));
 
   // 5. Every page opens without errors
-  const pages = ['/', '/attention', '/live', '/emergency', '/doctors', doctorHref + '?tab=hospitals', doctorHref + '?tab=money', doctorHref + '?tab=login', doctorHref + '?tab=history', '/hospitals', '/hospitals/new', '/money', '/money?tab=payouts', '/money?tab=payments', '/money?tab=reconciliation', '/settings/rules'];
+  const pages = ['/', '/attention', '/live', '/emergency', '/doctors', '/picks', '/money?tab=suggestions', doctorHref + '?tab=pick', doctorHref + '?tab=hospitals', doctorHref + '?tab=money', doctorHref + '?tab=login', doctorHref + '?tab=history', '/hospitals', '/hospitals/new', '/money', '/money?tab=payouts', '/money?tab=payments', '/money?tab=reconciliation', '/settings/rules'];
   for (const path of pages) {
     await go(a, path);
     const bad = await a.evaluate(() => {

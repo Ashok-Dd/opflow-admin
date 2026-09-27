@@ -28,6 +28,7 @@ const ICONS: Record<string, ReactNode> = {
   '/emergency': I('M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z'),
   '/doctors': I('M6 4v5a4 4 0 0 0 8 0V4M10 13v2a5 5 0 0 0 10 0v-2M20 11.5a1.5 1.5 0 1 1 0 .1'),
   '/hospitals': I('M4 20V8l8-4 8 4v12M9 20v-5h6v5M12 8v4M10 10h4'),
+  '/picks': I('M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.4 6.8 19.2l1-5.9L3.5 9.2l5.9-.8z'),
   '/money': I('M3 7h18v12H3zM3 11h18M16 15h2'),
   '/settings/rules': I('M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4'),
 };
