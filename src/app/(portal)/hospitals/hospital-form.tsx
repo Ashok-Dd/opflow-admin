@@ -32,7 +32,7 @@ export function HospitalForm({
   submit: string;
 }) {
   return (
-    <ActionForm action={action} submit={submit} hidden={v.id ? { id: v.id } : undefined}>
+    <ActionForm action={action} submit={submit} hidden={v.id ? { id: v.id } : undefined} confirm={{ title: v.id ? 'Save this hospital?' : 'Add this hospital?', text: 'Patients see the hospital name, address and phone on doctor pages.', yes: v.id ? 'Yes, save' : 'Yes, add hospital' }}>
       <Field label="Hospital name"><input name="name" required defaultValue={v.name} /></Field>
       <Field label="Address"><input name="address" required defaultValue={v.address} /></Field>
       <div className="grid3">

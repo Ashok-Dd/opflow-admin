@@ -63,8 +63,8 @@ async function Refunds({ status }: { status?: string }) {
                 <td>
                   {x.status === 'failed' ? (
                     <div className="actions">
-                      <ActionForm action={refundCommand} submit="Try again" small inline hidden={{ id: x.id, cmd: 'retry' }} />
-                      <ActionForm action={refundCommand} submit="Paid by bank" small inline hidden={{ id: x.id, cmd: 'mark-paid' }}>
+                      <ActionForm action={refundCommand} submit="Try again" small inline hidden={{ id: x.id, cmd: 'retry' }} confirm={{ title: 'Try this refund again?', text: 'Razorpay is asked to send the money back to the patient again.', yes: 'Yes, try again' }} />
+                      <ActionForm action={refundCommand} submit="Paid by bank" small inline hidden={{ id: x.id, cmd: 'mark-paid' }} confirm={{ title: 'Mark as paid by bank?', text: 'Only when the money really reached the patient by bank transfer. This closes the refund.', yes: 'Yes, it is paid' }}>
                         <input name="utr" placeholder="UTR number" required pattern="[A-Za-z0-9]{8,40}" style={{ width: 150, marginRight: 6 }} />
                       </ActionForm>
                     </div>

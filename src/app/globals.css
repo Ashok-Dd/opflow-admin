@@ -86,12 +86,13 @@ a { color: var(--fern); }
 .index .who .who-text { min-width: 0; }
 .index .who b { display: block; color: #fff; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .index .who .who-text span { display: block; color: #a9c1b5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.index .who form { grid-column: 1 / -1; }
-.index .who button {
+.index .who .signout {
+  grid-column: 1 / -1;
   margin-top: 6px; width: 100%; background: transparent; border: 1px solid #3d6b5c; color: #d8e4dc;
   padding: 7px 10px; border-radius: var(--r-sm); font: 500 13px var(--sans); cursor: pointer;
 }
-.index .who button:hover { border-color: var(--leaf); color: #fff; background: rgba(255, 255, 255, 0.05); }
+.index .who .signout:disabled { opacity: 0.6; cursor: default; }
+.index .who .signout:hover { border-color: var(--leaf); color: #fff; background: rgba(255, 255, 255, 0.05); }
 
 .sheet { padding: 30px 40px 80px; max-width: 1280px; width: 100%; min-width: 0; }
 
@@ -361,3 +362,13 @@ details summary { border-radius: 8px; }
 @media (prefers-reduced-motion: reduce) {
   .op-loader path { stroke-dashoffset: 0; }
 }
+
+/* ── "Are you sure?" box (the same look as the doctor website) ─────────────────────────────────── */
+dialog.ask-dlg {
+  border: 0; padding: 0; border-radius: 22px; box-shadow: 0 30px 70px rgba(10, 30, 22, 0.3); width: min(480px, calc(100vw - 32px));
+  background: var(--card); color: var(--ink);
+}
+dialog.ask-dlg::backdrop { background: rgba(9, 30, 24, 0.45); }
+dialog.ask-dlg .in { padding: 24px 24px 20px; }
+dialog.ask-dlg h3 { font: 500 24px var(--serif); margin: 0 0 6px; }
+dialog.ask-dlg p.lead { margin: 0 0 18px; color: var(--ink-soft); line-height: 1.5; }

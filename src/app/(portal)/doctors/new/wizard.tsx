@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { useActionState, useRef, useState } from 'react';
+
+import { useConfirm } from '@/components/confirm';
 
 import { OpLoadingScreen } from '@/components/op-loader';
 
@@ -24,6 +26,8 @@ export function DoctorWizard({
 }) {
   const [step, setStep] = useState(0);
   const [state, run, pending] = useActionState(createDoctor, null);
+  const ask = useConfirm();
+  const approved = useRef(false);
   const [fee, setFee] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
 
@@ -53,7 +57,26 @@ export function DoctorWizard({
 
   return (
     // noValidate: fields on hidden steps can't show the browser's messages; the API returns each wrong field.
-    <form action={run} noValidate>
+    <form
+      action={run}
+      noValidate
+      onSubmit={(e) => {
+        if (approved.current) {
+          approved.current = false;
+          return;
+        }
+        e.preventDefault();
+        const form = e.currentTarget;
+        void ask
+          .confirm({ title: 'Create this doctor?', text: 'An OPD ID and a first password are made now. Please check the details once more.', yes: 'Yes, create doctor' })
+          .then((ok) => {
+            if (!ok) return;
+            approved.current = true;
+            form.requestSubmit();
+          });
+      }}
+    >
+      {ask.dialog}
       <ol className="steps">
         {STEPS.map((s, i) => (
           <li key={s} className={i === step ? 'now' : i < step ? 'done' : ''}>

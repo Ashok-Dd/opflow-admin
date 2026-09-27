@@ -30,7 +30,7 @@ export default async function EmergencyPage() {
                 <td className="muted">{ago(e.updatedAt)}</td>
                 <td>
                   {can(who.role, 'addDoctor') ? (
-                    <ActionForm action={emergencyOff} submit="Turn off" small danger inline hidden={{ doctorId: e.doctorId }}>
+                    <ActionForm action={emergencyOff} submit="Turn off" small danger inline hidden={{ doctorId: e.doctorId }} confirm={{ title: 'Turn off this doctor\'s emergency status?', text: 'Patients will no longer see this doctor in emergency help.', yes: 'Yes, turn off' }}>
                       <input name="reason" required minLength={5} placeholder="Why (the doctor is told)" style={{ width: 220, marginRight: 6 }} />
                     </ActionForm>
                   ) : null}

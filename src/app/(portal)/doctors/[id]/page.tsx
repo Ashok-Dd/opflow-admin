@@ -92,7 +92,7 @@ export default async function DoctorPage({ params, searchParams }: PageProps<'/d
             {edit ? (
               <section className="slip">
                 <h3>Edit</h3>
-                <ActionForm action={updateDoctor} submit="Save" hidden={{ id: d.id }}>
+                <ActionForm action={updateDoctor} submit="Save" hidden={{ id: d.id }} confirm={{ title: "Save this doctor's details?", text: 'Patients see the changes on the doctor\'s page right away.', yes: 'Yes, save' }}>
                   <div className="grid3">
                     <Field label="Fee (₹)"><input name="fee" defaultValue={String(d.fee.paise / 100)} /></Field>
                     <Field label="Years"><input name="years" defaultValue={String(d.yearsExperience)} /></Field>
@@ -136,11 +136,11 @@ export default async function DoctorPage({ params, searchParams }: PageProps<'/d
               {d.verificationNote ? <div className="notice warn">{d.verificationNote}</div> : null}
               {edit && d.verification !== 'verified' ? (
                 <>
-                  <ActionForm action={doctorCommand} submit="Verify doctor" hidden={{ id: d.id, cmd: 'verify' }} confirm="You checked the list above? Patients will be able to find and book this doctor.">
+                  <ActionForm action={doctorCommand} submit="Verify doctor" hidden={{ id: d.id, cmd: 'verify' }} confirm={{ title: 'Verify this doctor?', text: 'You checked the list above? Patients will be able to find and book this doctor.', yes: 'Yes, verify' }}>
                     <Field label="What you checked"><input name="reason" minLength={5} required placeholder="Council record matches the name and number" /></Field>
                   </ActionForm>
                   <div style={{ marginTop: 10 }}>
-                    <ActionForm action={doctorCommand} submit="Needs correction" hidden={{ id: d.id, cmd: 'needs-correction' }}>
+                    <ActionForm action={doctorCommand} submit="Needs correction" hidden={{ id: d.id, cmd: 'needs-correction' }} confirm={{ title: 'Send back for correction?', text: 'The doctor stays hidden from patients until this is fixed.', yes: 'Yes, send back' }}>
                       <Field label="What must be fixed"><input name="reason" minLength={5} required /></Field>
                     </ActionForm>
                   </div>
@@ -152,9 +152,9 @@ export default async function DoctorPage({ params, searchParams }: PageProps<'/d
               <section className="slip">
                 <h3>{d.status === 'suspended' ? 'Suspended' : 'Suspend'}</h3>
                 {d.status === 'suspended' ? (
-                  <ActionForm action={doctorCommand} submit="Make active again" hidden={{ id: d.id, cmd: 'reactivate' }} />
+                  <ActionForm action={doctorCommand} submit="Make active again" hidden={{ id: d.id, cmd: 'reactivate' }} confirm={{ title: 'Make this doctor active again?', text: 'Patients can find and book this doctor again.', yes: 'Yes, make active' }} />
                 ) : (
-                  <ActionForm action={doctorCommand} submit="Suspend now" danger hidden={{ id: d.id, cmd: 'suspend' }} confirm="Hide this doctor now and refund every future booking in full?">
+                  <ActionForm action={doctorCommand} submit="Suspend now" danger hidden={{ id: d.id, cmd: 'suspend' }} confirm={{ title: 'Suspend this doctor now?', text: 'The doctor is hidden now and every future booking is refunded in full. Patients get a message.', yes: 'Yes, suspend' }}>
                     <Field label="Why"><input name="reason" minLength={5} required placeholder="Registration expired" /></Field>
                   </ActionForm>
                 )}
@@ -194,9 +194,9 @@ export default async function DoctorPage({ params, searchParams }: PageProps<'/d
           </section>
           <section className="slip">
             <h3>Help the doctor</h3>
-            <ActionForm action={doctorCommand} submit="Unlock login" hidden={{ id: d.id, cmd: 'unlock' }} />
+            <ActionForm action={doctorCommand} submit="Unlock login" hidden={{ id: d.id, cmd: 'unlock' }} confirm={{ title: 'Unlock this doctor\'s login?', text: 'They can try their password again right away.', yes: 'Yes, unlock' }} />
             <div style={{ marginTop: 12 }}>
-              <ActionForm action={doctorCommand} submit="Sign out on every phone" hidden={{ id: d.id, cmd: 'sign-out-everywhere' }} confirm="Sign this doctor out everywhere?" />
+              <ActionForm action={doctorCommand} submit="Sign out on every phone" hidden={{ id: d.id, cmd: 'sign-out-everywhere' }} confirm={{ title: 'Sign out on every phone?', text: 'The doctor must log in again on every phone and on the doctor website.', yes: 'Yes, sign out everywhere', danger: true }} />
             </div>
             <div style={{ marginTop: 12 }}>
               <ResetPassword id={d.id} />
@@ -212,7 +212,7 @@ export default async function DoctorPage({ params, searchParams }: PageProps<'/d
 
 function ResetPassword({ id }: { id: string }) {
   return (
-    <ActionForm action={doctorCommand} submit="Make a new one-time password" hidden={{ id, cmd: 'reset-password' }} confirm="The doctor's current password stops working. Continue?">
+    <ActionForm action={doctorCommand} submit="Make a new one-time password" hidden={{ id, cmd: 'reset-password' }} confirm={{ title: 'Make a new one-time password?', text: 'The doctor\'s current password stops working at once. Give them the new one yourself.', yes: 'Yes, make a new one', danger: true }}>
       <Field label="Why"><input name="reason" minLength={5} required placeholder="Doctor forgot the password (called from their number)" /></Field>
     </ActionForm>
   );
@@ -235,7 +235,7 @@ async function HospitalsTab({ d, edit }: { d: Doctor; edit: boolean }) {
                 <td><Stamp s={h.status} /></td>
                 <td>
                   {edit && h.status === 'active' ? (
-                    <ActionForm action={unlinkHospital} submit="Unlink" small danger hidden={{ id: d.id, hospitalId: h.id }} confirm="Stop this doctor's OPDs at this hospital?" />
+                    <ActionForm action={unlinkHospital} submit="Unlink" small danger hidden={{ id: d.id, hospitalId: h.id }} confirm={{ title: 'Unlink this hospital?', text: 'The doctor\'s OPDs at this hospital stop. Patients can no longer book them there.', yes: 'Yes, unlink' }} />
                   ) : null}
                 </td>
               </tr>
@@ -261,7 +261,7 @@ async function HospitalsTab({ d, edit }: { d: Doctor; edit: boolean }) {
       {edit ? (
         <section className="slip">
           <h3>Link a hospital</h3>
-          <ActionForm action={linkHospital} submit="Link" hidden={{ id: d.id }}>
+          <ActionForm action={linkHospital} submit="Link" hidden={{ id: d.id }} confirm={{ title: 'Link this hospital?', text: 'The doctor can add OPD timings at this hospital.', yes: 'Yes, link' }}>
             <Field label="Hospital">
               <select name="hospitalId" required defaultValue="">
                 <option value="" disabled>Choose</option>
@@ -310,7 +310,7 @@ async function MoneyTab({ d, edit }: { d: Doctor; edit: boolean }) {
           <p className="muted">No bank account yet.</p>
         )}
         {edit ? (
-          <ActionForm action={savePayout} submit={d.payout?.bankLast4 ? 'Replace account' : 'Add account'} hidden={{ id: d.id }}>
+          <ActionForm action={savePayout} submit={d.payout?.bankLast4 ? 'Replace account' : 'Add account'} hidden={{ id: d.id }} confirm={{ title: d.payout?.bankLast4 ? 'Replace the bank account?' : 'Add this bank account?', text: "The doctor's money is paid to this account from now on. Check the numbers once more.", yes: 'Yes, save account' }}>
             <Field label="Account holder"><input name="holderName" required /></Field>
             <div className="grid2">
               <Field label="Account number"><input name="accountNumber" inputMode="numeric" autoComplete="off" required /></Field>

@@ -32,11 +32,11 @@ export default async function RulesPage() {
               <td>
                 {canAsk ? (
                   s.value === true ? (
-                    <ActionForm action={killSwitch} submit="Turn OFF now" small danger inline hidden={{ key: s.key }} confirm={`Turn OFF ${s.key} for everyone now?`}>
+                    <ActionForm action={killSwitch} submit="Turn OFF now" small danger inline hidden={{ key: s.key }} confirm={{ title: `Turn OFF ${s.key}?`, text: 'This switches it off for everyone right away.', yes: 'Yes, turn off' }}>
                       <input name="reason" required minLength={5} placeholder="Why" style={{ width: 200, marginRight: 6 }} />
                     </ActionForm>
                   ) : (
-                    <ActionForm action={saveRule} submit="Turn ON" small inline hidden={{ key: s.key, value: 'true' }}>
+                    <ActionForm action={saveRule} submit="Turn ON" small inline hidden={{ key: s.key, value: 'true' }} confirm={{ title: `Turn ON ${s.key}?`, text: 'This switches it on for everyone right away.', yes: 'Yes, turn on' }}>
                       <input name="reason" required minLength={5} placeholder="Why it is safe again" style={{ width: 200, marginRight: 6 }} />
                     </ActionForm>
                   )
@@ -60,7 +60,7 @@ export default async function RulesPage() {
                   {x.key === 'platform_fee_percent' ? (
                     <span className="faint">fixed in the database</span>
                   ) : (
-                    <ActionForm action={saveRule} submit="Save" small hidden={{ key: x.key }}>
+                    <ActionForm action={saveRule} submit="Save" small hidden={{ key: x.key }} confirm={{ title: `Save ${x.key}?`, text: 'The new value is used for everyone right away.', yes: 'Yes, save' }}>
                       <div className="actions" style={{ flexWrap: 'nowrap' }}>
                         <input name="value" required defaultValue={JSON.stringify(x.value)} className="mono" style={{ width: 110 }} />
                         <input name="reason" required minLength={5} placeholder="Why" style={{ width: 170 }} />

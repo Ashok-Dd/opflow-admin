@@ -49,6 +49,13 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
     return p;
   };
   const clickText = async (p, text) => { await p.waitForFunction((t) => [...document.querySelectorAll('button')].some((b) => b.textContent.trim().startsWith(t) && !b.disabled), {}, text); await p.evaluate((t) => [...document.querySelectorAll('button')].find((b) => b.textContent.trim().startsWith(t) && !b.disabled).click(), text); await new Promise((r) => setTimeout(r, 150)); };
+  // The OPflow "Are you sure?" box: wait for it, check its title, press a button in it.
+  const answer = async (p, title, label) => {
+    const shown = await p.waitForFunction((t) => document.querySelector('dialog.ask-dlg[open] h3')?.textContent.includes(t), { timeout: 10000 }, title).then(() => true).catch(() => false);
+    if (shown) await p.evaluate((l) => [...document.querySelectorAll('dialog.ask-dlg[open] button')].find((b) => b.textContent.trim().startsWith(l)).click(), label);
+    await new Promise((r) => setTimeout(r, 200));
+    return shown;
+  };
   const go = async (p, path) => { await p.goto(SITE + path, { waitUntil: 'networkidle0' }); };
   const submitAndWait = async (p, sel = 'button.btn') => { await Promise.all([p.waitForNavigation({ waitUntil: 'networkidle0' }).catch(() => null), p.click(sel)]); };
 
@@ -85,8 +92,9 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   check('Wrong password shows a simple message', (await a.$eval('.result.bad', (e) => e.textContent)).includes('not right'));
   await signIn(a, 'asha@opflow.test', 'Asha-admin-2026x', secretA);
   check('Admin A signs in with authenticator code', a.url() === SITE + '/', a.url());
+  // The OP loader shows first while the day's figures load.
+  check('Today shows figures', !!(await a.waitForSelector('.figures', { timeout: 20000 }).catch(() => null)));
   await a.screenshot({ path: 'shots/02-today.png', fullPage: true });
-  check('Today shows figures', !!(await a.$('.figures')));
 
   // 3. Add a doctor with the wizard
   await go(a, '/doctors/new');
@@ -102,6 +110,7 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   await clickText(a, 'Next'); await clickText(a, 'Next');
   await a.type('textarea[name=about]', 'Fever, BP, sugar and all common adult problems.');
   await clickText(a, 'Create doctor');
+  check('Wizard: asks before creating', await answer(a, 'Create this doctor?', 'Yes, create doctor'));
   await a.waitForFunction(() => document.body.innerText.includes('Doctor created') || document.querySelector('.result.bad'), { timeout: 20000 });
   const created = await a.evaluate(() => document.body.innerText);
   const loginId = (created.match(/OPD-\d+/) || [])[0];
@@ -115,7 +124,6 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   // 4. Verify the doctor (one admin: applies at once, recorded in the audit log)
   await go(a, doctorHref);
   await a.screenshot({ path: 'shots/07-doctor-page.png', fullPage: true });
-  a.on('dialog', (d) => d.accept());
   for (const f of await a.$$('form')) {
     const t = await f.evaluate((e) => e.innerText);
     if (t.includes('Verify doctor')) {
@@ -124,6 +132,8 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
       break;
     }
   }
+  check('Verify: asks first (the OPflow box, not a browser popup)', await answer(a, 'Verify this doctor?', 'Yes, verify'));
+  await a.screenshot({ path: 'shots/08-verified.png' });
   // After verifying, the page refreshes: the stamp turns VERIFIED (or the code box appears first).
   await a.waitForFunction(() => !!document.querySelector('.stepup') || document.querySelector('.head .stamp')?.textContent?.toLowerCase() === 'verified', { timeout: 15000 });
   if (await a.$('.stepup')) {
@@ -177,7 +187,13 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   // 7. Sign out ends the session
   await a.setViewport({ width: 1440, height: 900 });
   await go(a, '/');
-  await submitAndWait(a, '.who button');
+  await a.click('.who .signout');
+  check('Sign out asks first', await answer(a, 'Sign out?', 'Not now'));
+  check('…"Not now" keeps the admin signed in', a.url() === SITE + '/' && !(await a.$('dialog.ask-dlg[open]')));
+  await a.click('.who .signout');
+  await a.waitForSelector('dialog.ask-dlg[open]');
+  await a.screenshot({ path: 'shots/16-sign-out-ask.png' });
+  await Promise.all([a.waitForNavigation({ waitUntil: 'networkidle0' }).catch(() => null), answer(a, 'Sign out?', 'Yes, sign out')]);
   await go(a, '/doctors');
   check('Sign out ends the session', a.url().includes('/sign-in'));
 

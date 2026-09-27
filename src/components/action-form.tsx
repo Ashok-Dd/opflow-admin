@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, type ReactNode } from 'react';
 
 import type { ActionResult } from '@/lib/actions';
 
+import { useConfirm, type Ask } from './confirm';
 import { OpLoadingScreen } from './op-loader';
 
 type ServerAction = (prev: ActionResult, form: FormData) => Promise<ActionResult>;
@@ -28,7 +29,8 @@ export function ActionForm({
   action: ServerAction;
   children?: ReactNode;
   submit: string;
-  confirm?: string;
+  /** Ask first (the OPflow question box). The danger look follows the form's own `danger`. */
+  confirm?: Ask;
   danger?: boolean;
   small?: boolean;
   inline?: boolean;
@@ -39,6 +41,8 @@ export function ActionForm({
 }) {
   const [state, run, pending] = useActionState(action, null);
   const ref = useRef<HTMLFormElement>(null);
+  const approved = useRef(false);
+  const ask = useConfirm();
   const needCode = state && !state.ok && state.code === 'STEP_UP_REQUIRED';
 
   useEffect(() => {
@@ -50,7 +54,18 @@ export function ActionForm({
       ref={ref}
       action={run}
       onSubmit={(e) => {
-        if (confirm && !needCode && !window.confirm(confirm)) e.preventDefault();
+        // Asked already (or sending the authenticator code for an action that was confirmed): go.
+        if (!confirm || needCode || approved.current) {
+          approved.current = false;
+          return;
+        }
+        e.preventDefault();
+        const form = e.currentTarget;
+        void ask.confirm({ danger, ...confirm }).then((ok) => {
+          if (!ok) return;
+          approved.current = true;
+          form.requestSubmit();
+        });
       }}
       style={inline ? { display: 'inline-block' } : undefined}
     >
@@ -58,6 +73,7 @@ export function ActionForm({
         <input key={k} type="hidden" name={k} value={v} />
       ))}
       {pending ? <OpLoadingScreen message={busy} /> : null}
+      {ask.dialog}
       {children}
       {needCode ? (
         <div className="stepup">

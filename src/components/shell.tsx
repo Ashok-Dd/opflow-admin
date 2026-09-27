@@ -1,9 +1,11 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useTransition, type ReactNode } from 'react';
 
+import { useConfirm } from './confirm';
 import { Nav, type NavGroup } from './nav';
+import { OpLoadingScreen } from './op-loader';
 
 /**
  * The page frame: a green sidebar on wide screens. On phones and small tablets the sidebar is hidden behind a
@@ -90,14 +92,35 @@ export function Shell({
             <b>{who.name}</b>
             <span>{who.email}</span>
           </div>
-          <form action={signOut}>
-            <button type="submit">Sign out</button>
-          </form>
+          <SignOut signOut={signOut} />
         </div>
       </aside>
 
       <div className="scrim" onClick={() => setOpen(false)} aria-hidden="true" />
       <main className="sheet">{children}</main>
     </div>
+  );
+}
+
+/** Sign out, after asking. */
+function SignOut({ signOut }: { signOut: () => Promise<void> }) {
+  const { confirm, dialog } = useConfirm();
+  const [pending, start] = useTransition();
+  return (
+    <>
+      <button
+        type="button"
+        className="signout"
+        disabled={pending}
+        onClick={async () => {
+          if (await confirm({ title: 'Sign out?', text: 'You will need your email, password and authenticator code to sign in again.', yes: 'Yes, sign out', danger: true }))
+            start(() => signOut());
+        }}
+      >
+        Sign out
+      </button>
+      {pending ? <OpLoadingScreen message="Signing out…" /> : null}
+      {dialog}
+    </>
   );
 }
