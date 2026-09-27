@@ -108,13 +108,14 @@ export function ActionForm({
 }
 
 /** A label + input pair. */
-export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+export function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: ReactNode }) {
   return (
-    <label className="field">
+    <label className={error ? 'field has-err' : 'field'}>
       <span>
         {label} {hint ? <i>· {hint}</i> : null}
       </span>
       {children}
+      {error ? <b className="err" role="alert">{error}</b> : null}
     </label>
   );
 }

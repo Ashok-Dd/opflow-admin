@@ -164,7 +164,9 @@ h2.sec small { font: 600 11px var(--mono); color: var(--ink-faint); letter-spaci
 .field { display: grid; gap: 6px; margin-bottom: 14px; }
 .field > span { font: 600 12.5px var(--sans); color: var(--ink-soft); }
 .field > span i { font-style: normal; color: var(--ink-faint); font-weight: 400; }
-.field .err { color: var(--alarm); font-size: 12px; }
+.field .err { color: var(--alarm); font-size: 12px; font-weight: 500; }
+.field.has-err input, .field.has-err select, .field.has-err textarea { border-color: var(--alarm); }
+.step-err { color: var(--alarm); font-size: 12px; font-weight: 500; margin: 0 0 12px; }
 input, select, textarea {
   font: inherit; color: var(--ink); background: #fff;
   border: 1px solid var(--rule); border-radius: var(--r-ctl);

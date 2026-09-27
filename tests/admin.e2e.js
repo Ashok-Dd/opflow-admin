@@ -99,6 +99,8 @@ const check = (name, ok, extra = '') => { results.push({ name, ok, extra }); con
   // 3. Add a doctor with the wizard
   await go(a, '/doctors/new');
   await a.screenshot({ path: 'shots/03-wizard-step1.png' });
+  await clickText(a, 'Next');
+  check('Wizard: empty Identity step shows its errors there', await a.evaluate(() => document.querySelectorAll('.field.has-err').length >= 3 && document.body.innerText.includes('Who is the doctor?')));
   await a.type('input[name=name]', 'dr. meena rao'); await a.select('select[name=gender]', 'female');
   await a.type('input[name=phone]', '9876500011'); await a.type('input[name=email]', 'meena@opflow.test');
   await clickText(a, 'Next');
