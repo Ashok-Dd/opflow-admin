@@ -4,6 +4,8 @@ import { useActionState, useEffect, useRef, type ReactNode } from 'react';
 
 import type { ActionResult } from '@/lib/actions';
 
+import { OpLoadingScreen } from './op-loader';
+
 type ServerAction = (prev: ActionResult, form: FormData) => Promise<ActionResult>;
 
 /**
@@ -21,6 +23,7 @@ export function ActionForm({
   inline,
   hidden,
   resetOnOk,
+  busy = 'Working…',
 }: {
   action: ServerAction;
   children?: ReactNode;
@@ -31,6 +34,8 @@ export function ActionForm({
   inline?: boolean;
   hidden?: Record<string, string>;
   resetOnOk?: boolean;
+  /** What the OP loader says while the action runs. */
+  busy?: string;
 }) {
   const [state, run, pending] = useActionState(action, null);
   const ref = useRef<HTMLFormElement>(null);
@@ -52,6 +57,7 @@ export function ActionForm({
       {Object.entries(hidden ?? {}).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
+      {pending ? <OpLoadingScreen message={busy} /> : null}
       {children}
       {needCode ? (
         <div className="stepup">

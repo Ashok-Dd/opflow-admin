@@ -14,7 +14,7 @@ export default async function SignIn({ searchParams }: PageProps<'/sign-in'>) {
         <p className="lead">For the OPflow admin only. There is no sign-up.</p>
         {q.expired ? <div className="notice warn">You were signed out. Please sign in again.</div> : null}
         {q.ready ? <div className="notice">Your account is ready. Sign in with your new password.</div> : null}
-        <ActionForm action={signIn} submit="Continue" hidden={{ next: q.next ?? '/' }}>
+        <ActionForm action={signIn} submit="Continue" busy="Checking…" hidden={{ next: q.next ?? '/' }}>
           <Field label="Email">
             <input name="email" type="email" autoComplete="username" required autoFocus />
           </Field>

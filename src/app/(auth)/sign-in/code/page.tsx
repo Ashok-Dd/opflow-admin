@@ -12,7 +12,7 @@ export default async function Code({ searchParams }: PageProps<'/sign-in/code'>)
       <section className="pass">
         <h1>Authenticator code</h1>
         <p className="lead">Open your authenticator app and enter the 6-digit code for OPflow Admin.</p>
-        <ActionForm action={verifyCode} submit="Sign in" hidden={{ next: q.next ?? '/' }}>
+        <ActionForm action={verifyCode} submit="Sign in" busy="Signing in…" hidden={{ next: q.next ?? '/' }}>
           <Field label="Code">
             <input
               name="code"

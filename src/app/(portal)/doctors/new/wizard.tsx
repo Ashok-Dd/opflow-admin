@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
 
+import { OpLoadingScreen } from '@/components/op-loader';
+
 import { Field } from '@/components/action-form';
 
 import { createDoctor } from '../../actions';
@@ -180,6 +182,7 @@ export function DoctorWizard({
             <button className="btn" disabled={pending}>{pending ? 'Creating…' : 'Create doctor'}</button>
           )}
         </div>
+        {pending ? <OpLoadingScreen message="Creating the doctor…" detail="Making the OPD ID and the first password" /> : null}
         {state && !state.ok ? (
           <div className="result bad" role="status">
             {state.message}

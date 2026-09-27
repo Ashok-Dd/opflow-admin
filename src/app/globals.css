@@ -331,3 +331,33 @@ details summary { border-radius: 8px; }
 @media (prefers-reduced-motion: reduce) {
   .index, .scrim, .btn, .register tbody tr { transition: none; }
 }
+
+/* ── The OP loader (the app's): ring → P → heartbeat → fade, one second ──────────────────────────── */
+.op-loader path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.op-loader .op-ring { animation: op-ring 1s cubic-bezier(0.33, 1, 0.68, 1) infinite; }
+.op-loader .op-stem { animation: op-stem 1s cubic-bezier(0.33, 1, 0.68, 1) infinite; }
+.op-loader .op-bowl { animation: op-bowl 1s cubic-bezier(0.33, 1, 0.68, 1) infinite; }
+.op-loader .op-beat { animation: op-beat 1s cubic-bezier(0.33, 1, 0.68, 1) infinite; }
+.op-loader .op-fade { animation: op-fade 1s linear infinite; }
+@keyframes op-ring { 0% { stroke-dashoffset: 1; } 38%, 100% { stroke-dashoffset: 0; } }
+@keyframes op-stem { 0%, 20% { stroke-dashoffset: 1; } 44%, 100% { stroke-dashoffset: 0; } }
+@keyframes op-bowl { 0%, 36% { stroke-dashoffset: 1; } 62%, 100% { stroke-dashoffset: 0; } }
+@keyframes op-beat { 0%, 50% { stroke-dashoffset: 1; } 84%, 100% { stroke-dashoffset: 0; } }
+@keyframes op-fade { 0%, 86% { opacity: 1; } 100% { opacity: 0; } }
+.op-panel { display: grid; place-items: center; align-content: center; gap: 14px; color: var(--ink-soft); font-weight: 500; }
+.op-screen {
+  border: 0; padding: 0; margin: auto; background: transparent; max-width: none; overflow: visible;
+  animation: op-in 0.15s ease-out;
+}
+.op-screen::backdrop { background: rgba(244, 241, 232, 0.82); animation: op-in 0.15s ease-out; }
+.op-screen:focus { outline: none; }
+.op-screen-card {
+  display: grid; justify-items: center; gap: 10px; padding: 28px 36px; min-width: 260px; text-align: center;
+  background: var(--card); border: 1px solid var(--rule-soft); border-radius: 22px; box-shadow: var(--shadow-raised);
+}
+.op-screen-card b { font: 500 21px var(--serif); }
+.op-screen-card span { color: var(--ink-soft); font-size: 14px; }
+@keyframes op-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .op-loader path { stroke-dashoffset: 0; }
+}

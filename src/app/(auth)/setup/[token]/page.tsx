@@ -35,7 +35,7 @@ export default async function Setup({ params }: PageProps<'/setup/[token]'>) {
               Can&apos;t scan? Type this key: <span className="mono">{info.totpSecret.replace(/(.{4})/g, '$1 ').trim()}</span>
             </p>
             <h3 style={{ font: '500 15px var(--serif)', margin: '14px 0 6px' }}>2 · Choose a password and enter the code</h3>
-            <ActionForm action={completeSetup} submit="Finish setup" hidden={{ token }}>
+            <ActionForm action={completeSetup} submit="Finish setup" busy="Finishing setup…" hidden={{ token }}>
               <Field label="Password" hint="12 or more letters and numbers">
                 <input name="password" type="password" autoComplete="new-password" minLength={12} required />
               </Field>
