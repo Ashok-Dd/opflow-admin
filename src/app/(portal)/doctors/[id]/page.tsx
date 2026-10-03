@@ -36,6 +36,7 @@ interface Doctor {
   documents: { id: string; kind: string; status: string; note: string | null; reviewedAt: string | null; createdAt: string }[];
   hospitals: { id: string; name: string; area: string; isPrimary: boolean; feePaiseOverride: number | null; status: string }[];
   payout: { status: string; bankLast4: string | null; ifsc: string | null } | null;
+  deviceCounts: { web: number; phones: number };
   devices: { id: string; device: string; appVersion: string | null; signedInAt: string; lastUsedAt: string; ip: string | null }[];
   checklist: Record<string, boolean>;
   timings: { hospitalId: string; days: { weekday: number; blocks: { start: string; end: string; perHour: number }[] }[] }[];
@@ -178,7 +179,7 @@ export default async function DoctorPage({ params, searchParams }: PageProps<'/d
               <dt>First password</dt><dd>{d.mustChange ? 'not changed yet' : 'changed by the doctor'}</dd>
               <dt>Locked</dt><dd>{d.lockedUntil && new Date(d.lockedUntil) > new Date() ? `until ${dateTime(d.lockedUntil)}` : 'no'}</dd>
             </dl>
-            <h3 style={{ marginTop: 16 }}>Signed-in devices <span className="faint" style={{ font: '12px var(--sans)' }}>· at most 2</span></h3>
+            <h3 style={{ marginTop: 16 }}>Signed-in devices <span className="faint" style={{ font: '12px var(--sans)' }}>· {d.deviceCounts.phones} phone{d.deviceCounts.phones === 1 ? '' : 's'} (of 2) · {d.deviceCounts.web} website (of 1)</span></h3>
             {d.devices.length === 0 ? <p className="muted">Not signed in anywhere.</p> : (
               <table className="register">
                 <tbody>
